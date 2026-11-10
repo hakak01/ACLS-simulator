@@ -14,6 +14,7 @@
   --accent:#0a5aa8; --on-accent:#ffffff; --shock:#c2410c; --on-shock:#ffffff;
   --good:#17753f; --warn:#8a5300; --bad:#b42318; --scrim:rgb(8 14 20 / .55);
   --mon-bg:#060a0e; --mon-line:#1c2833; --mon-ink:#b9c6d2; --ecg:#3fe06a; --bp:#ff8a8a; --spo2:#4fd6ff; --co2:#ffd84d; --mon-alert:#ff6b5e;
+  --dummy:#e2b594; --dummy-line:#b58564; --cloth:#5f7385;
   --font:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --font-num:"IBM Plex Sans Condensed","IBM Plex Sans",system-ui,sans-serif;
   padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
@@ -22,13 +23,13 @@
   :root:not([data-theme="light"]){
     --bg:#0e141b; --surface:#18212b; --surface-2:#1f2a36; --ink:#e6edf3; --muted:#95a3b1; --line:#2c3947;
     --accent:#62adff; --on-accent:#06223f; --shock:#ff8f52; --on-shock:#2b1203;
-    --good:#52c98f; --warn:#f0b429; --bad:#ff8078; --scrim:rgb(0 0 0 / .65); color-scheme:dark;
+    --good:#52c98f; --warn:#f0b429; --bad:#ff8078; --scrim:rgb(0 0 0 / .65); --dummy:#c99f80; --dummy-line:#8a6850; --cloth:#40505f; color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
   --bg:#0e141b; --surface:#18212b; --surface-2:#1f2a36; --ink:#e6edf3; --muted:#95a3b1; --line:#2c3947;
   --accent:#62adff; --on-accent:#06223f; --shock:#ff8f52; --on-shock:#2b1203;
-  --good:#52c98f; --warn:#f0b429; --bad:#ff8078; --scrim:rgb(0 0 0 / .65); color-scheme:dark;
+  --good:#52c98f; --warn:#f0b429; --bad:#ff8078; --scrim:rgb(0 0 0 / .65); --dummy:#c99f80; --dummy-line:#8a6850; --cloth:#40505f; color-scheme:dark;
 }
 *{box-sizing:border-box}
 html,body{height:100%}
@@ -68,7 +69,7 @@ p{margin:0}
 .cases li span:last-child{font-size:12.5px;color:var(--muted);font-weight:400;white-space:nowrap}
 
 /* sim */
-.sim{display:flex;flex-direction:column;gap:8px;max-width:34rem;margin:0 auto;height:100%;min-height:35rem}
+.sim{display:flex;flex-direction:column;gap:8px;max-width:34rem;margin:0 auto;height:100%;min-height:41rem}
 .screen.simwrap{padding-block:8px}
 .top{display:flex;align-items:center;gap:8px}
 .top .name{font:600 16px/1.1 var(--font-num);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -88,12 +89,43 @@ p{margin:0}
 .cprbar .fill{height:100%;width:0;background:var(--ecg)}
 .cprbar.over .fill{background:var(--co2)} .cprbar.over{color:var(--co2)}
 .cprbar.off{color:var(--mon-alert)}
+.patient{display:flex;flex-direction:column;gap:6px}
+.pview{position:relative;height:100px;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden;padding-right:74px}
+.pview svg{display:block;width:100%;height:100%}
+#g3d{position:absolute;inset:0 74px 0 0}
+.pvmsg{position:absolute;left:8px;bottom:6px;right:82px;font-size:12px;color:var(--muted)}
+.pvbtns{position:absolute;top:0;bottom:0;right:0;width:74px;padding:5px;display:flex;flex-direction:column;gap:4px;border-left:1px solid var(--line)}
+.pvbtns button{flex:1;min-height:0;padding:2px 4px;border:1px solid var(--line);border-radius:7px;background:var(--surface);font:600 12px/1 var(--font);color:var(--ink)}
+.pvbtns button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.dummy .bed{fill:var(--surface-2);stroke:var(--line)}
+.dummy .skin{fill:var(--dummy);stroke:var(--dummy-line)}
+.dummy .cloth{fill:var(--cloth)}
+.dummy .face{fill:none;stroke:var(--dummy-line);stroke-width:1.6;stroke-linecap:round}
+.dummy text{font:600 9px var(--font);fill:var(--muted)}
+.dummy .g-pads,.dummy .g-iv,.dummy .g-io,.dummy .g-bvm,.dummy .g-tube,.dummy .g-bag,.dummy .g-capno,.dummy .g-hands,.dummy .g-zap{display:none}
+.dummy.pads .g-pads,.dummy.iv .g-iv,.dummy.io .g-io,.dummy.bvm .g-bvm,.dummy.tube .g-tube,.dummy.bvm .g-bag,.dummy.tube .g-bag,.dummy.capno .g-capno,.dummy.cpr .g-hands,.dummy.zap .g-zap{display:inline}
+.g-pads rect{fill:var(--surface);stroke:var(--accent);stroke-width:1.5}
+.g-pads path,.g-iv path,.g-io path,.g-bag path{fill:none;stroke:var(--muted);stroke-width:1.5}
+.g-iv rect,.g-io circle{fill:var(--accent)}
+.g-bvm .mask{fill:color-mix(in srgb,var(--accent) 35%,transparent);stroke:var(--accent)}
+.g-tube path{fill:none;stroke:var(--accent);stroke-width:3;stroke-linecap:round}
+.g-bag ellipse{fill:var(--accent)}
+.g-capno rect{fill:var(--warn)}
+.g-hands path{fill:none;stroke:var(--good);stroke-width:7;stroke-linecap:round;opacity:.75}
+.g-hands ellipse{fill:var(--good)}
+.g-zap{fill:var(--shock);stroke:var(--surface);stroke-width:1}
+#room{position:fixed;inset:0;z-index:15;background:var(--mon-bg)}
+#roomGL{position:absolute;inset:0}
+.roombar{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:8px max(16px,env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));background:var(--scrim);color:var(--mon-ink)}
+.roombar span{flex:1 1 12rem;min-width:0;font-size:13px}
+.roombar .btn{min-height:40px}
 .status{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .status div{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:4px 8px;font-size:12px;line-height:1.25;min-width:0}
 .status b{display:block;font:600 10.5px/1.2 var(--font);letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
 .status span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
 .status .busy span{color:var(--accent)}
-.card{flex:1 1 7.5rem;min-height:7.5rem;overflow:hidden;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.card{flex:1 1 6.5rem;min-height:6.5rem;overflow:hidden;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
 .card .body{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:8px}
 .card .say{font-size:14.5px}
 .card .say b{font-weight:600}
@@ -128,7 +160,7 @@ p{margin:0}
 .logrows div{display:grid;grid-template-columns:3.2em 1fr;gap:8px;padding:3px 0;border-bottom:1px solid var(--line)}
 .logrows time{font-variant-numeric:tabular-nums;color:var(--muted)}
 .logrows .you{font-weight:600}
-@media (max-height:700px){ .sim{gap:6px} .monitor canvas{height:60px} .vital b{font-size:22px} .pad .btn{min-height:42px} .pad .cpr{min-height:46px} }
+@media (max-height:820px){ .sim{gap:6px;min-height:37.5rem} .monitor canvas{height:60px} .vital b{font-size:22px} .pview{height:84px} .pad .btn{min-height:42px} .pad .cpr{min-height:46px} }
 
 /* debrief */
 .scorebox{display:flex;align-items:center;gap:16px}
@@ -147,7 +179,12 @@ p{margin:0}
 .item p{grid-column:2/-1;font-size:13.5px}
 .item p.why{color:var(--muted)}
 .srcs{font-size:12.5px;color:var(--muted);display:flex;flex-direction:column;gap:4px;padding-left:1.1em;margin:0}
-@media (prefers-reduced-motion: no-preference){ .cpr.on .dot{animation:beat .545s infinite} }
+@media (prefers-reduced-motion: no-preference){
+  .cpr.on .dot{animation:beat .545s infinite}
+  .dummy.cpr .g-hands ellipse{animation:beat .545s infinite;transform-box:fill-box;transform-origin:center}
+  .dummy.zap .body{animation:jerk .3s}
+}
+@keyframes jerk{0%{transform:translateY(0)}30%{transform:translateY(-4px)}100%{transform:translateY(0)}}
 .dot{display:inline-block;width:.6em;height:.6em;border-radius:50%;background:var(--good);margin-right:.45em}
 @keyframes beat{0%{transform:scale(1.35)}60%{transform:scale(.8)}100%{transform:scale(1.35)}}
 </style>
@@ -180,7 +217,15 @@ p{margin:0}
     </div>
 
     <div class="panel">
-      <p class="eyebrow">3 · Case</p>
+      <p class="eyebrow">3 · Dummy patient</p>
+      <div class="seg" id="segView">
+        <button type="button" id="viewFlat" data-v="2d" aria-pressed="true"><b>2D drawing</b><span>A simple picture of the patient. Lightest for a phone.</span></button>
+        <button type="button" id="view3D" data-v="3d" aria-pressed="false"><b>3D model</b><span>A 3D dummy on a bed. Drag to turn it. Needs internet.</span></button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <p class="eyebrow">4 · Case</p>
       <ul class="cases">
         <li class="on"><span>VF / pulseless VT arrest</span><span>ready</span></li>
         <li><span>Asystole / PEA</span><span>coming next</span></li>
@@ -191,6 +236,8 @@ p{margin:0}
         <li><span>Massive PE arrest</span><span>coming next</span></li>
       </ul>
       <button type="button" class="btn primary wide" id="startBtn">Start VF / pVT case</button>
+      <button type="button" class="btn wide" id="startRoomBtn">Start in the 3D room<small>for Meta Quest, or any screen</small></button>
+      <p class="small muted">In a Meta Quest headset: open this page in the Quest browser, tap “Start in the 3D room”, then “Enter VR”.</p>
     </div>
 
     <p class="small muted">For training only. This is not a medical device and does not replace your local protocols. Content follows the 2025 AHA Guidelines for CPR and Emergency Cardiovascular Care, Part 9: Adult Advanced Life Support (Wigginton JG, et al. Circulation 2025;152(16 suppl 2):S538–S577).</p>
@@ -219,10 +266,44 @@ p{margin:0}
       <div class="cprbar off" id="cprbar"><span id="cprTxt">NO CPR 0:00</span><div class="track"><div class="fill" id="cprFill"></div></div><span>2:00</span></div>
     </div>
 
-    <div class="status">
-      <div id="stDefib"><b>Defib</b><span>Pads off</span></div>
-      <div id="stAccess"><b>Access</b><span>None</span></div>
-      <div id="stAirway"><b>Airway</b><span>None</span></div>
+    <div class="patient">
+      <div class="pview">
+        <svg id="dummy" class="dummy" viewBox="0 0 360 104" role="img" aria-label="Dummy patient seen from above, head on the left">
+          <rect class="bed" x="4" y="10" width="352" height="84" rx="10"/>
+          <g class="body">
+            <rect class="skin" x="78" y="13" width="104" height="12" rx="6"/>
+            <rect class="skin" x="78" y="79" width="104" height="12" rx="6"/>
+            <rect class="skin" x="328" y="31" width="14" height="19" rx="6"/>
+            <rect class="skin" x="328" y="54" width="14" height="19" rx="6"/>
+            <rect class="cloth" x="150" y="31" width="184" height="19" rx="9"/>
+            <rect class="cloth" x="150" y="54" width="184" height="19" rx="9"/>
+            <rect class="skin" x="56" y="45" width="16" height="14"/>
+            <rect class="skin" x="68" y="27" width="100" height="50" rx="15"/>
+            <rect class="cloth" x="146" y="27" width="34" height="50" rx="10"/>
+            <circle class="skin" cx="42" cy="52" r="18"/>
+            <path class="face" d="M36 44v5M36 55v5M50 49v6"/>
+          </g>
+          <g class="g-pads"><rect x="80" y="56" width="26" height="16" rx="3"/><rect x="116" y="30" width="26" height="16" rx="3"/><path d="M93 56 Q88 30 70 4M129 30V4"/></g>
+          <g class="g-iv"><rect x="112" y="80" width="11" height="10" rx="2"/><path d="M117 90V104"/><text x="124" y="102">IV</text></g>
+          <g class="g-io"><circle cx="262" cy="63" r="5"/><path d="M262 68V104"/><text x="269" y="102">IO</text></g>
+          <g class="g-bvm"><ellipse class="mask" cx="48" cy="52" rx="12" ry="10"/></g>
+          <g class="g-tube"><path d="M51 52L38 32"/><text id="tubeLbl" x="62" y="22">ET tube</text></g>
+          <g class="g-bag"><path d="M44 43L34 27"/><ellipse cx="27" cy="21" rx="13" ry="8"/></g>
+          <g class="g-capno"><rect x="34" y="27" width="9" height="9" rx="2"/><text x="7" y="44">CO₂</text></g>
+          <g class="g-hands"><path d="M104 0L110 46M124 0L118 46"/><ellipse cx="114" cy="52" rx="13" ry="10"/></g>
+          <path class="g-zap" d="M124 30l-12 20h9l-7 18 18-24h-10l7-14z"/>
+        </svg>
+        <div id="g3d" hidden></div>
+        <p class="pvmsg" id="pvMsg" hidden></p>
+        <div class="pvbtns">
+          <button type="button" id="v2d" aria-pressed="true">2D</button><button type="button" id="v3d" aria-pressed="false">3D</button><button type="button" id="vRoom">3D room</button>
+        </div>
+      </div>
+      <div class="status">
+        <div id="stDefib"><b>Defib</b><span>Pads off</span></div>
+        <div id="stAccess"><b>Access</b><span>None</span></div>
+        <div id="stAirway"><b>Airway</b><span>None</span></div>
+      </div>
     </div>
 
     <div class="card" id="card" aria-live="polite"></div>
@@ -249,6 +330,12 @@ p{margin:0}
   <div class="col" id="debriefBody"></div>
 </section>
 
+<!-- ============ 3D ROOM ============ -->
+<div id="room" hidden>
+  <div id="roomGL"></div>
+  <div class="roombar"><span id="roomMsg"></span><button type="button" class="btn primary" id="vrBtn" hidden>Enter VR</button><button type="button" class="btn" id="roomExit">Exit 3D room</button></div>
+</div>
+
 <!-- ============ SHEET ============ -->
 <div class="overlay" id="overlay" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
@@ -265,7 +352,7 @@ function fmt(s){ s = Math.max(0, Math.floor(s)); return Math.floor(s/60) + ':' +
 function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
 
 /* ---------------- settings and fixed data ---------------- */
-var CFG = { mode:'coach', kit:'ideal' };
+var CFG = { mode:'coach', kit:'ideal', view:'2d' };
 var WEIGHT = 70;
 var SRC9 = 'Wigginton JG, et al. Part 9: Adult Advanced Life Support: 2025 American Heart Association Guidelines for CPR and Emergency Cardiovascular Care. Circulation 2025;152(16 suppl 2):S538–S577. doi:10.1161/CIR.0000000000001376';
 var KITS = {
@@ -282,6 +369,20 @@ var DRUGS = {
   aden:{ name:'Adenosine', short:'Adenosine', doses:[['6','6 mg'],['12','12 mg']] },
   mag:{ name:'Magnesium sulfate', short:'Magnesium', doses:[['1','1 g'],['2','2 g']] }
 };
+var SRCS = [
+  'Handbook 2020, p. 51 (CPR quality); AHA adult BLS.',
+  'Handbook 2020, p. 50, algorithm step 1.',
+  'Handbook 2020, p. 50, steps 2–3; AHA 2025 Part 9.',
+  'AHA 2025 Part 9 (value you checked); the same in Handbook 2020, p. 51.',
+  'Handbook 2020, p. 50, steps 3–4.',
+  'Short pauses: Handbook 2020, pp. 10 and 51. The 60% and 80% figures: Meaney 2013; not yet checked against the 2025 text.',
+  'Handbook 2020, p. 50 (CPR for two minutes).',
+  'AHA 2025 Part 9 (value you checked). The 2020 handbook, p. 50, says only “IV/IO access”.',
+  'Dose and interval: AHA 2025 Part 9 (values you checked). After the 2nd shock: Handbook 2020, p. 50, step 6.',
+  'Doses: AHA 2025 Part 9 (values you checked). After the 3rd shock: Handbook 2020, p. 50, step 8.',
+  'Handbook 2020, p. 51 (30:2, 10 breaths per minute, capnography).',
+  'AHA list of Hs and Ts. The 2020 handbook, p. 49, also lists hypoglycemia and trauma.'
+];
 var HT = [
   ['hypovol','Hypovolemia','No bleeding and no fluid loss. Abdomen soft. Unlikely.'],
   ['hypoxia','Hypoxia','He was talking, with SpO₂ 97% on room air, just before he collapsed. Airway is clear. Unlikely as the first cause.'],
@@ -295,7 +396,7 @@ var HT = [
   ['mi','Thrombosis, coronary','Crushing central chest pain for 30 minutes in a smoker with hypertension. The arrival ECG showed ST elevation in V1–V4. This is the most likely cause.']
 ];
 var WHY = {
-  cpr:'Start chest compressions as soon as cardiac arrest is recognised. Good CPR means 100–120 compressions per minute, at least 5 cm (2 inches) deep, full chest recoil, and very few pauses.',
+  cpr:'Start chest compressions as soon as cardiac arrest is recognised. Good CPR means 100–120 compressions per minute, 5–6 cm (2–2.4 inches) deep, full chest recoil, and very few pauses.',
   pads:'Attach the defibrillator as soon as it arrives, while CPR continues. In VF/pVT the time to the first shock matters most for survival.',
   shock1:'VF and pulseless VT are shockable rhythms. Give one shock as soon as the defibrillator is ready. Keep CPR going until the shock.',
   eBi:'Biphasic defibrillator: use the dose the maker recommends (120–200 J). If you do not know it, use the maximum dose.',
@@ -665,7 +766,7 @@ function cont(){
 /* ---------------- scoring ---------------- */
 function computeScore(){
   var items = [], n = S.shocks.length, k = kit();
-  function add(title, max, pts, did, why){ pts = Math.max(0, Math.min(max, Math.round(pts))); items.push({title:title, max:max, pts:pts, did:did, why:why}); }
+  function add(title, max, pts, did, why){ pts = Math.max(0, Math.min(max, Math.round(pts))); items.push({title:title, max:max, pts:pts, did:did, why:why, src:SRCS[items.length]}); }
   // 1 CPR start
   var c = S.firstCprT;
   add('Start CPR at once', 10, c == null ? 0 : c <= 15 ? 10 : c <= 30 ? 5 : 2, c == null ? 'CPR was never started.' : 'CPR started ' + Math.round(c) + ' s after the collapse.', WHY.cpr);
@@ -746,20 +847,31 @@ var ui = { card:true, last:{} };
 function show(id){ ['setup','simScreen','debrief'].forEach(function(x){ $('#' + x).hidden = x !== id; }); }
 function setT(id, txt){ if (ui.last[id] !== txt){ ui.last[id] = txt; $('#' + id).textContent = txt; } }
 
+var INTRO = [
+  'A 58-year-old man, 70 kg, came in with crushing chest pain for 30 minutes. His arrival ECG showed ST elevation in V1–V4.',
+  'He has just collapsed in the resuscitation bay. He does not respond, he is not breathing, and there is no carotid pulse.'
+];
+function introLines(){
+  return INTRO.concat([
+    'You are the team leader. Your team of four is at the bedside with a ' + kit().defib.toLowerCase() + ' defibrillator. The monitor is not attached yet.',
+    CFG.mode === 'coach' ? 'The clock stops at each decision. Give your orders, read the feedback, then continue.' : 'The clock runs in real time. Use the speed button if you want it faster.'
+  ]);
+}
+function showIntro(){
+  var L = introLines();
+  openSheet('Your patient', '<p>' + L[0] + '</p><p>' + L[1] + '</p><p>' + L[2] + '</p><p class="small muted">' + L[3] + '</p>' +
+    '<button type="button" class="btn primary wide" data-a="begin">Begin</button>', true);
+}
 function startCase(opts){
-  S = newState(opts); ui.last = {}; ui.card = true;
+  S = newState(opts); ui.last = {}; ui.card = true; G.menu = null; G.score = null;
   show('simScreen'); sizeCanvas();
+  if (CFG.view !== G.view) setView(CFG.view);
   $('#modeLabel').textContent = (CFG.mode === 'coach' ? 'Pause and explain' : 'Real-time') + ' · ' + kit().label;
   $('#speedBtn').hidden = $('#pauseBtn').hidden = CFG.mode === 'coach';
   $('#bPace').disabled = !kit().pacer;
   $('#bPace').innerHTML = kit().pacer ? 'Pacing' : 'Pacing<small>no pacer</small>';
   $('#vCOu').textContent = kit().capno ? 'mm Hg' : 'no capnograph';
-  openSheet('Your patient',
-    '<p>A 58-year-old man, 70 kg, came in with crushing chest pain for 30 minutes. His arrival ECG showed ST elevation in V1–V4.</p>' +
-    '<p>He has just collapsed in the resuscitation bay. He does not respond, he is not breathing, and there is no carotid pulse.</p>' +
-    '<p>You are the <b>team leader</b>. Your team of four is at the bedside with a ' + kit().defib.toLowerCase() + ' defibrillator. The monitor is not attached yet.</p>' +
-    '<p class="small muted">' + (CFG.mode === 'coach' ? 'The clock stops at each decision. Give your orders, read the feedback, then tap Continue.' : 'The clock runs in real time. Use the speed button if you want it faster.') + '</p>' +
-    '<button type="button" class="btn primary wide" data-a="begin">Begin</button>', true);
+  if (!G.room) showIntro(); else closeSheet();
   try { if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(function(){}); } catch (e) {}
 }
 function begin(){
@@ -776,60 +888,49 @@ function openSheet(title, html, locked){
   if (S && CFG.mode === 'coach') S.running = false;
 }
 function closeSheet(){ $('#overlay').hidden = true; }
-function energySheet(kind){
-  var k = kit(), h = '<p class="small muted">' + k.defib + ' defibrillator' + (CFG.kit === 'ideal' ? '. The maker’s recommended dose is not known.' : '.') + '</p><div class="grid2">';
-  k.energies.forEach(function(e){ h += '<button type="button" class="btn ' + (kind === 'shock' ? 'shock' : '') + '" data-a="' + kind + '" data-v="' + e + '">' + e + ' J</button>'; });
-  openSheet(kind === 'shock' ? 'Defibrillate (unsynchronized shock)' : 'Synchronized cardioversion', h + '</div>');
+
+/* One description of every order menu. The phone sheets and the 3D room panel both draw from it. */
+function menuDef(kind, arg){
+  var k = kit(), o = [], d = {title:'', note:'', cols:1, opts:o, back:null};
+  function na(on){ return on ? '' : 'not in this kit'; }
+  if (kind === 'shock' || kind === 'sync'){
+    d.title = kind === 'shock' ? 'Defibrillate (unsynchronized shock)' : 'Synchronized cardioversion';
+    d.note = k.defib + ' defibrillator' + (CFG.kit === 'ideal' ? '. The maker’s recommended dose is not known.' : '.'); d.cols = 2;
+    k.energies.forEach(function(e){ o.push({label:e + ' J', a:kind, v:String(e), style:kind === 'shock' ? 'shock' : ''}); });
+  } else if (kind === 'drugs'){
+    d.title = 'Drugs'; d.note = 'Patient weight 70 kg. ' + (S.access ? 'Route: ' + S.access.toUpperCase() + '.' : 'No IV or IO access yet.');
+    Object.keys(DRUGS).forEach(function(key){ o.push({label:DRUGS[key].name, sub:na(k.drugs[key]), dis:!k.drugs[key], a:'open', v:'dose|' + key}); });
+  } else if (kind === 'dose'){
+    d.title = DRUGS[arg].name; d.note = 'Choose the dose to give now.'; d.cols = 2;
+    DRUGS[arg].doses.forEach(function(x){ o.push({label:x[1], a:'drug', v:arg + '|' + x[0]}); });
+    d.back = {label:'Back to drugs', a:'open', v:'drugs'};
+  } else if (kind === 'airway'){
+    d.title = 'Airway and breathing';
+    o.push({label:'Bag-mask + oral airway + oxygen', sub:'30 compressions : 2 breaths', a:'airway', v:'bvm'});
+    o.push({label:'Supraglottic airway', sub:na(k.adv), dis:!k.adv, a:'airway', v:'sga'});
+    o.push({label:'Endotracheal tube', sub:na(k.adv), dis:!k.adv, a:'airway', v:'ett'});
+    o.push({label:'Waveform capnography', sub:na(k.capno), dis:!k.capno, a:'airway', v:'capno'});
+  } else if (kind === 'access'){
+    d.title = 'Vascular access';
+    o.push({label:'Peripheral IV', a:'access', v:'iv'}); o.push({label:'Intraosseous (IO)', a:'access', v:'io'});
+  } else if (kind === 'hts'){
+    d.title = 'Hs and Ts: reversible causes'; d.note = 'Pick a cause to hear what the team finds. Then name the most likely cause.'; d.cols = 2;
+    HT.forEach(function(r){ o.push({label:r[1], sub:S.hts.marked === r[0] ? 'named as the likely cause' : '', a:'open', v:'ht|' + r[0]}); });
+  } else if (kind === 'ht'){
+    var row = HT.filter(function(h){ return h[0] === arg; })[0];
+    d.title = row[1]; d.note = row[2];
+    o.push({label:'Name this as the likely cause', a:'htMark', v:arg, style:'primary'});
+    d.back = {label:'Back to Hs and Ts', a:'open', v:'hts'};
+  } else if (kind === 'end'){
+    d.title = 'End the case?'; d.note = 'The case will stop and you will see the debrief with your score.';
+    o.push({label:'End case and see debrief', a:'end', v:'', style:'primary'});
+    d.back = {label:'Keep going', a:'close', v:''};
+  }
+  return d;
 }
-function drugSheet(){
-  var k = kit(), h = '';
-  Object.keys(DRUGS).forEach(function(key){
-    var on = k.drugs[key];
-    h += '<button type="button" class="btn" data-a="drugPick" data-v="' + key + '"' + (on ? '' : ' disabled') + '>' + DRUGS[key].name + (on ? '' : '<small>not in this kit</small>') + '</button>';
-  });
-  openSheet('Drugs', '<p class="small muted">Patient weight 70 kg. ' + (S.access ? 'Route: ' + S.access.toUpperCase() + '.' : 'No IV or IO access yet.') + '</p>' + h);
-}
-function doseSheet(key){
-  var d = DRUGS[key], h = '<p class="small muted">Choose the dose to give now.</p><div class="grid2">';
-  d.doses.forEach(function(x){ h += '<button type="button" class="btn" data-a="drug" data-v="' + key + '|' + x[0] + '">' + x[1] + '</button>'; });
-  openSheet(d.name, h + '</div><button type="button" class="btn quiet" data-a="drugs">Back to drugs</button>');
-}
-function airwaySheet(){
-  var k = kit(), h = '<button type="button" class="btn" data-a="airway" data-v="bvm">Bag-mask + oral airway + oxygen<small>30 compressions : 2 breaths</small></button>';
-  h += '<button type="button" class="btn" data-a="airway" data-v="sga"' + (k.adv ? '' : ' disabled') + '>Supraglottic airway' + (k.adv ? '' : '<small>not in this kit</small>') + '</button>';
-  h += '<button type="button" class="btn" data-a="airway" data-v="ett"' + (k.adv ? '' : ' disabled') + '>Endotracheal tube' + (k.adv ? '' : '<small>not in this kit</small>') + '</button>';
-  h += '<button type="button" class="btn" data-a="airway" data-v="capno"' + (k.capno ? '' : ' disabled') + '>Waveform capnography' + (k.capno ? '' : '<small>not in this kit</small>') + '</button>';
-  openSheet('Airway and breathing', h);
-}
-function accessSheet(){
-  openSheet('Vascular access', '<button type="button" class="btn" data-a="access" data-v="iv">Peripheral IV</button><button type="button" class="btn" data-a="access" data-v="io">Intraosseous (IO)</button>');
-}
-function htSheet(openKey){
-  var h = '<p class="small muted">Tap a cause to hear what the team finds. Then name the most likely cause.</p>';
-  HT.forEach(function(r){
-    var marked = S.hts.marked === r[0];
-    h += '<button type="button" class="btn" data-a="ht" data-v="' + r[0] + '">' + r[1] + (marked ? '<small>named as the likely cause</small>' : '') + '</button>';
-    if (openKey === r[0]) h += '<div class="finding"><span>' + r[2] + '</span><button type="button" class="btn primary" data-a="htMark" data-v="' + r[0] + '">Name this as the likely cause</button></div>';
-  });
-  openSheet('Hs and Ts: reversible causes', h);
-}
-function logSheet(){
-  var h = '<div class="logrows">';
-  S.log.forEach(function(l){ h += '<div><time>' + fmt(l.t) + '</time><span class="' + l.cls + '">' + esc(l.text) + '</span></div>'; });
-  openSheet('Event log', h + '</div>');
-}
-function endSheet(){
-  openSheet('End the case?', '<p>The case will stop and you will see the debrief with your score.</p><button type="button" class="btn primary" data-a="end">End case and see debrief</button><button type="button" class="btn" data-a="close">Keep going</button>');
-}
-$('#sheetBody').addEventListener('click', function(ev){
-  var b = ev.target.closest('button[data-a]'); if (!b || b.disabled) return;
-  var a = b.dataset.a, v = b.dataset.v;
-  if (a === 'begin') return begin();
-  if (a === 'close') return closeSheet();
-  if (a === 'drugs') return drugSheet();
-  if (a === 'drugPick') return doseSheet(v);
-  if (a === 'ht'){ A.htView(v); return htSheet(v); }
-  closeSheet();
+function menuAct(a, v, open, close){
+  if (a === 'open'){ var q = v.split('|'); if (q[0] === 'ht') A.htView(q[1]); return open(q[0], q[1]); }
+  close();
   if (a === 'shock') A.shock(+v);
   else if (a === 'sync') A.sync(+v);
   else if (a === 'drug'){ var p = v.split('|'); A.drug(p[0], p[1]); }
@@ -837,6 +938,24 @@ $('#sheetBody').addEventListener('click', function(ev){
   else if (a === 'access') A.access(v);
   else if (a === 'htMark') A.htMark(v);
   else if (a === 'end') A.end();
+}
+function openMenu(kind, arg){
+  var d = menuDef(kind, arg);
+  function b(x, cls){ return '<button type="button" class="btn ' + (x.style || cls || '') + '" data-a="' + x.a + '" data-v="' + x.v + '"' + (x.dis ? ' disabled' : '') + '>' + x.label + (x.sub ? '<small>' + x.sub + '</small>' : '') + '</button>'; }
+  var h = d.note ? '<p class="' + (kind === 'ht' ? 'finding' : 'small muted') + '">' + d.note + '</p>' : '';
+  h += (d.cols === 2 ? '<div class="grid2">' : '') + d.opts.map(function(x){ return b(x); }).join('') + (d.cols === 2 ? '</div>' : '');
+  if (d.back) h += b(d.back, 'quiet');
+  openSheet(d.title, h);
+}
+function logSheet(){
+  var h = '<div class="logrows">';
+  S.log.forEach(function(l){ h += '<div><time>' + fmt(l.t) + '</time><span class="' + l.cls + '">' + esc(l.text) + '</span></div>'; });
+  openSheet('Event log', h + '</div>');
+}
+$('#sheetBody').addEventListener('click', function(ev){
+  var b = ev.target.closest('button[data-a]'); if (!b || b.disabled) return;
+  if (b.dataset.a === 'begin') return begin();
+  menuAct(b.dataset.a, b.dataset.v, openMenu, closeSheet);
 });
 $('#sheetClose').addEventListener('click', closeSheet);
 $('#overlay').addEventListener('click', function(ev){ if (ev.target === this && !this.dataset.locked) closeSheet(); });
@@ -844,15 +963,15 @@ $('#overlay').addEventListener('click', function(ev){ if (ev.target === this && 
 $('#bCPR').addEventListener('click', function(){ A.cpr(); });
 $('#bPads').addEventListener('click', function(){ A.pads(); });
 $('#bCheck').addEventListener('click', function(){ A.check(); });
-$('#bShock').addEventListener('click', function(){ if (S.phase === 'arrest') energySheet('shock'); });
-$('#bSync').addEventListener('click', function(){ if (S.phase === 'arrest') energySheet('sync'); });
+$('#bShock').addEventListener('click', function(){ if (S.phase === 'arrest') openMenu('shock'); });
+$('#bSync').addEventListener('click', function(){ if (S.phase === 'arrest') openMenu('sync'); });
 $('#bPace').addEventListener('click', function(){ A.pace(); });
-$('#bDrugs').addEventListener('click', function(){ if (S.phase === 'arrest') drugSheet(); });
-$('#bAirway').addEventListener('click', function(){ if (S.phase === 'arrest') airwaySheet(); });
-$('#bAccess').addEventListener('click', function(){ if (S.phase === 'arrest') accessSheet(); });
-$('#bHT').addEventListener('click', function(){ if (S.phase === 'arrest') htSheet(); });
+$('#bDrugs').addEventListener('click', function(){ if (S.phase === 'arrest') openMenu('drugs'); });
+$('#bAirway').addEventListener('click', function(){ if (S.phase === 'arrest') openMenu('airway'); });
+$('#bAccess').addEventListener('click', function(){ if (S.phase === 'arrest') openMenu('access'); });
+$('#bHT').addEventListener('click', function(){ if (S.phase === 'arrest') openMenu('hts'); });
 $('#bLog').addEventListener('click', logSheet);
-$('#endBtn').addEventListener('click', function(){ if (S.phase === 'rosc') A.end(); else endSheet(); });
+$('#endBtn').addEventListener('click', function(){ if (S.phase === 'rosc') A.end(); else openMenu('end'); });
 $('#speedBtn').addEventListener('click', function(){ S.speed = S.speed === 1 ? 2 : S.speed === 2 ? 4 : 1; });
 $('#pauseBtn').addEventListener('click', function(){ if (S.phase === 'arrest'){ S.running = !S.running; ui.card = true; } });
 $('#card').addEventListener('click', function(ev){
@@ -865,11 +984,12 @@ $('#card').addEventListener('click', function(ev){
 function seg(id, key){
   $(id).addEventListener('click', function(ev){
     var b = ev.target.closest('button'); if (!b) return;
-    CFG[key] = b.dataset.v;
-    Array.prototype.forEach.call(this.children, function(c){ c.setAttribute('aria-pressed', c === b ? 'true' : 'false'); });
+    CFG[key] = b.dataset.v; segSync(id, b.dataset.v);
+    if (key === 'view'){ try { localStorage.setItem('acls.view', CFG.view); } catch (e) {} }
   });
 }
-seg('#segMode','mode'); seg('#segKit','kit');
+function segSync(id, v){ Array.prototype.forEach.call($(id).children, function(c){ c.setAttribute('aria-pressed', c.dataset.v === v ? 'true' : 'false'); }); }
+seg('#segMode','mode'); seg('#segKit','kit'); seg('#segView','view');
 $('#startBtn').addEventListener('click', function(){ startCase(); });
 
 /* ---------------- drawing the sim screen ---------------- */
@@ -919,9 +1039,10 @@ function render(){
     var t = taskText(role), txt = t || idle, key = id + txt;
     if (ui.last[id] !== key){ ui.last[id] = key; var el = $('#' + id); el.className = t ? 'busy' : ''; el.lastElementChild.textContent = txt; }
   }
-  st('stDefib','defib', S.pads ? kit().defib + ', pads on' : 'Pads off');
-  st('stAccess','meds', S.access ? S.access.toUpperCase() + ' in place' : (S.ivFailed ? 'IV failed' : 'None'));
-  st('stAirway','airway', (S.airway ? {bvm:'Bag-mask + O₂', sga:'SGA', ett:'ET tube'}[S.airway] : 'None') + (S.capno ? ' · capno' : ''));
+  st('stDefib','defib', stIdle('defib'));
+  st('stAccess','meds', stIdle('meds'));
+  st('stAirway','airway', stIdle('airway'));
+  renderDummy();
   if (CFG.mode === 'real'){ setT('speedBtn', S.speed + '×'); setT('pauseBtn', S.running ? 'Pause' : 'Resume'); }
   var runKey = S.running ? 'r' : 'p';
   if (ui.last.run !== runKey){ ui.last.run = runKey; ui.card = true; }
@@ -931,18 +1052,23 @@ function render(){
 }
 
 /* ---------------- ECG ---------------- */
-var cv = $('#ecg'), cx = cv.getContext('2d'), ecg = { x:0, t:0, y:null, w:0, h:0, col:{} };
+var cv = $('#ecg'), cx = cv.getContext('2d'), ECGC = {}, domScope = null;
+function mkScope(c, x0, y0, w, h, lw){ return {c:c, x0:x0, y0:y0, w:w, h:h, lw:lw, x:0, y:null, t:0, acc:0}; }
+function readColors(){
+  var cs = getComputedStyle(document.documentElement);
+  ['ecg','bp','spo2','co2'].forEach(function(k){ ECGC[k] = cs.getPropertyValue('--' + k).trim(); });
+  ECGC.bg = cs.getPropertyValue('--mon-bg').trim(); ECGC.dim = cs.getPropertyValue('--mon-ink').trim(); ECGC.alert = cs.getPropertyValue('--mon-alert').trim();
+}
 function sizeCanvas(){
   var r = cv.getBoundingClientRect(), d = window.devicePixelRatio || 1;
   if (!r.width) return;
   cv.width = Math.round(r.width * d); cv.height = Math.round(r.height * d);
   cx.setTransform(d, 0, 0, d, 0, 0);
-  ecg.w = r.width; ecg.h = r.height; ecg.x = 0; ecg.y = null;
-  var cs = getComputedStyle(document.documentElement);
-  ecg.col = { ecg:cs.getPropertyValue('--ecg').trim(), bg:cs.getPropertyValue('--mon-bg').trim(), dim:cs.getPropertyValue('--mon-ink').trim() };
-  cx.fillStyle = ecg.col.bg; cx.fillRect(0, 0, ecg.w, ecg.h);
+  readColors();
+  domScope = mkScope(cx, 0, 0, r.width, r.height, 1.6);
+  cx.fillStyle = ECGC.bg; cx.fillRect(0, 0, r.width, r.height);
 }
-window.addEventListener('resize', sizeCanvas);
+window.addEventListener('resize', function(){ sizeCanvas(); resizeG(); });
 function g(p, c, w, a){ return a * Math.exp(-((p - c) * (p - c)) / (2 * w * w)); }
 var wave = {
   VF:function(t){ var a = 0.55 + 0.35 * Math.sin(0.9 * t + 1.5 * Math.sin(0.37 * t));
@@ -953,32 +1079,493 @@ var wave = {
   cpr:function(t, under){ var p = (t * 110 / 60) % 1; return 0.72 * Math.sin(2 * Math.PI * p) + 0.24 * Math.sin(4 * Math.PI * p + 1.2) + 0.12 * under; },
   none:function(){ return 0; }
 };
-function drawECG(dtReal){
-  if (!ecg.w) return;
-  var pps = ecg.w / 6, steps = Math.max(1, Math.round(dtReal * pps));
+/* Draws the moving ECG trace into any canvas region (the phone monitor and the 3D room monitor). */
+function sweep(sc, dtReal){
+  var c = sc.c, pps = sc.w / 6, gap = sc.lw * 8;
+  sc.acc += dtReal * pps; var steps = Math.floor(sc.acc); sc.acc -= steps;
   var kind = !S.pads ? 'none' : S.rhythm;
-  cx.lineWidth = 1.6; cx.lineJoin = 'round'; cx.strokeStyle = ecg.col.ecg;
   var flash = S.flash && performance.now() - S.flash < 220;
+  c.lineWidth = sc.lw; c.lineJoin = 'round'; c.strokeStyle = ECGC.ecg;
   for (var i = 0; i < steps; i++){
-    var x0 = ecg.x, y = ecg.y;
-    cx.fillStyle = ecg.col.bg; cx.fillRect(x0 + 1, 0, 12, ecg.h);
-    cx.beginPath(); if (y != null) cx.moveTo(x0, y);
+    var x0 = sc.x, y = sc.y;
+    c.fillStyle = ECGC.bg; c.fillRect(sc.x0 + x0 + 1, sc.y0, Math.min(gap, sc.w - x0 - 1), sc.h);
+    c.beginPath(); if (y != null) c.moveTo(sc.x0 + x0, y);
     for (var j = 1; j <= 4; j++){
-      ecg.t += 1 / (pps * 4);
-      var v = wave[kind](ecg.t);
-      if (S.pads && S.cpr) v = wave.cpr(ecg.t, v);
+      sc.t += 1 / (pps * 4);
+      var v = wave[kind](sc.t);
+      if (S.pads && S.cpr) v = wave.cpr(sc.t, v);
       if (flash) v = 1.25;
-      var ny = ecg.h / 2 - v * ecg.h * 0.38;
-      if (y == null) cx.moveTo(x0 + j / 4, ny); else cx.lineTo(x0 + j / 4, ny);
+      var ny = sc.y0 + sc.h / 2 - v * sc.h * 0.38;
+      if (y == null) c.moveTo(sc.x0 + x0 + j / 4, ny); else c.lineTo(sc.x0 + x0 + j / 4, ny);
       y = ny;
     }
-    cx.stroke();
-    ecg.y = y; ecg.x = x0 + 1;
-    if (ecg.x >= ecg.w){ ecg.x = 0; ecg.y = null; cx.fillStyle = ecg.col.bg; cx.fillRect(0, 0, 12, ecg.h); }
+    c.stroke();
+    sc.y = y; sc.x = x0 + 1;
+    if (sc.x >= sc.w){ sc.x = 0; sc.y = null; c.fillStyle = ECGC.bg; c.fillRect(sc.x0, sc.y0, gap, sc.h); }
   }
-  if (!S.pads){ cx.fillStyle = ecg.col.bg; cx.fillRect(0, 0, ecg.w, 18); cx.fillStyle = ecg.col.dim; cx.font = '600 12px ' + getComputedStyle(document.body).fontFamily; cx.fillText('NO SIGNAL · pads not attached', 4, 13); ecg.label = true; }
-  else if (ecg.label){ ecg.label = false; cx.fillStyle = ecg.col.bg; cx.fillRect(0, 0, ecg.w, 18); }
 }
+function drawECG(dtReal){
+  if (!domScope) return;
+  sweep(domScope, dtReal);
+  if (!S.pads){ cx.fillStyle = ECGC.bg; cx.fillRect(0, 0, domScope.w, 18); cx.fillStyle = ECGC.dim; cx.font = '600 12px ' + getComputedStyle(document.body).fontFamily; cx.fillText('NO SIGNAL · pads not attached', 4, 13); domScope.label = true; }
+  else if (domScope.label){ domScope.label = false; cx.fillStyle = ECGC.bg; cx.fillRect(0, 0, domScope.w, 18); }
+}
+
+/* ---------------- patient view: 2D drawing ---------------- */
+function stIdle(role){
+  if (role === 'defib') return S.pads ? kit().defib + ', pads on' : 'Pads off';
+  if (role === 'meds') return S.access ? S.access.toUpperCase() + ' in place' : (S.ivFailed ? 'IV failed' : 'None');
+  return (S.airway ? {bvm:'Bag-mask + O₂', sga:'SGA', ett:'ET tube'}[S.airway] : 'None') + (S.capno ? ' · capno' : '');
+}
+function renderDummy(){
+  var tube = S.airway === 'sga' || S.airway === 'ett';
+  var cls = 'dummy' + (S.pads ? ' pads' : '') + (S.cpr ? ' cpr' : '') + (S.airway === 'bvm' ? ' bvm' : '') + (tube ? ' tube' : '') + (S.capno ? ' capno' : '') +
+            (S.access ? ' ' + S.access : '') + (S.flash && performance.now() - S.flash < 350 ? ' zap' : '');
+  if (ui.last.dummy !== cls){ ui.last.dummy = cls; $('#dummy').setAttribute('class', cls); }
+  if (tube) setT('tubeLbl', S.airway === 'ett' ? 'ET tube' : 'SGA');
+}
+
+/* ---------------- 3D patient, 3D room and VR (three.js, loaded only when asked for) ---------------- */
+var G = { ready:false, loading:false, cbs:[], view:'2d', room:false, xr:false, menu:null, score:null, own:false, look:{yaw:0, pitch:-0.2}, orbit:0, cprK:0, hover:-1, rects:[], sigO:'', sigC:'', time:0 };
+var THREE_URL = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+var FN = '"IBM Plex Sans Condensed","IBM Plex Sans",system-ui,sans-serif', FB = '"IBM Plex Sans",system-ui,sans-serif';
+function loadThree(cb){
+  if (window.THREE){ if (!G.ready) initG(); return cb(true); }
+  G.cbs.push(cb); if (G.loading) return; G.loading = true;
+  var s = document.createElement('script'); s.src = THREE_URL;
+  function done(ok){ G.loading = false; if (ok){ try { initG(); } catch (e){ ok = false; if (window.console) console.error(e); } } var c = G.cbs; G.cbs = []; c.forEach(function(f){ f(ok); }); }
+  s.onload = function(){ done(!!window.THREE); }; s.onerror = function(){ done(false); };
+  document.head.appendChild(s);
+}
+function setLimb(o, a, b){
+  var va = G.v1.set(a[0], a[1], a[2]), d = G.v2.set(b[0], b[1], b[2]).sub(va), len = d.length() || 0.0001;
+  o.position.copy(va).addScaledVector(d, 0.5); o.scale.set(o.userData.r, len, o.userData.r);
+  o.quaternion.setFromUnitVectors(G.up, d.multiplyScalar(1 / len));
+}
+function mkPanel(wm, hm, cw, ch){
+  var T = G.T, c = document.createElement('canvas'); c.width = cw; c.height = ch;
+  var tex = new T.CanvasTexture(c); tex.encoding = T.sRGBEncoding; tex.anisotropy = 4;
+  var mesh = new T.Mesh(new T.PlaneGeometry(wm, hm), new T.MeshBasicMaterial({map:tex}));
+  var bezel = new T.Mesh(new T.BoxGeometry(wm + 0.04, hm + 0.04, 0.02), new T.MeshLambertMaterial({color:0x1b232c})); bezel.position.z = -0.012; mesh.add(bezel);
+  G.scene.add(mesh);
+  return {c:c, x:c.getContext('2d'), tex:tex, mesh:mesh, w:cw, h:ch};
+}
+function initG(){
+  var T = G.T = window.THREE, r = G.r = new T.WebGLRenderer({antialias:true});
+  r.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)); r.outputEncoding = T.sRGBEncoding; r.xr.enabled = true;
+  try { r.xr.setReferenceSpaceType('local-floor'); } catch (e) {}
+  r.domElement.style.cssText = 'width:100%;height:100%;display:block;touch-action:none';
+  G.v1 = new T.Vector3(); G.v2 = new T.Vector3(); G.up = new T.Vector3(0, 1, 0); G.ray = new T.Raycaster(); G.m4 = new T.Matrix4(); G.v2d = new T.Vector2();
+  var sc = G.scene = new T.Scene(); sc.background = new T.Color(0xaebcc7);
+  G.cam = new T.PerspectiveCamera(50, 2, 0.05, 30); G.cam.rotation.order = 'YXZ';
+  sc.add(new T.HemisphereLight(0xffffff, 0x7f8c99, 0.92));
+  var sun = new T.DirectionalLight(0xffffff, 0.5); sun.position.set(1.5, 3, 2); sc.add(sun);
+  G.sph = new T.SphereGeometry(1, 20, 14); G.cyl = new T.CylinderGeometry(1, 1, 1, 12);
+  function M(c, o){ var p = {color:c}; if (o) for (var k in o) p[k] = o[k]; return new T.MeshLambertMaterial(p); }
+  function box(p, w, h, d, m, x, y, z){ var o = new T.Mesh(new T.BoxGeometry(w, h, d), m); o.position.set(x, y, z); p.add(o); return o; }
+  function ball(p, m, x, y, z, sx, sy, sz){ var o = new T.Mesh(G.sph, m); o.position.set(x, y, z); o.scale.set(sx, sy, sz); p.add(o); return o; }
+  function limb(p, m, rad, a, b){ var o = new T.Mesh(G.cyl, m); o.userData.r = rad; p.add(o); if (a) setLimb(o, a, b); return o; }
+  function grp(p){ var o = new T.Group(); p.add(o); return o; }
+
+  // room
+  var roomBox = new T.Mesh(new T.BoxGeometry(6, 3.2, 5), new T.MeshLambertMaterial({color:0xdde5ea, side:T.BackSide})); roomBox.position.set(0, 1.6, 0.2); sc.add(roomBox);
+  var floor = new T.Mesh(new T.PlaneGeometry(6, 5), M(0x8d9aa6)); floor.rotation.x = -Math.PI / 2; floor.position.set(0, 0.003, 0.2); sc.add(floor);
+  // bed
+  var BZ = -0.85, BY = 0.72, steel = M(0x9aa3ab);
+  G.BY = BY; G.BZ = BZ;
+  box(sc, 2.08, 0.12, 0.80, M(0x4f7396), 0, BY - 0.06, BZ);
+  box(sc, 2.02, 0.05, 0.74, steel, 0, BY - 0.145, BZ);
+  [[-0.95,-0.33],[0.95,-0.33],[-0.95,0.33],[0.95,0.33]].forEach(function(q){ box(sc, 0.05, BY - 0.17, 0.05, steel, q[0], (BY - 0.17) / 2, BZ + q[1]); });
+  // defibrillator trolley and drip stand
+  box(sc, 0.5, 0.86, 0.45, M(0xb7c0c8), -1.38, 0.43, -1.27);
+  box(sc, 0.38, 0.24, 0.30, M(0x2f3a45), -1.38, 0.98, -1.27);
+  box(sc, 0.2, 0.12, 0.01, new T.MeshBasicMaterial({color:0x3fe06a}), -1.38, 1.0, -1.115);
+  limb(sc, steel, 0.012, [-1.15, 0, -0.42], [-1.15, 1.9, -0.42]);
+  limb(sc, steel, 0.16, [-1.15, 0, -0.42], [-1.15, 0.03, -0.42]);
+  G.drip = ball(sc, M(0xd9ecf5, {transparent:true, opacity:0.85}), -1.15, 1.72, -0.42, 0.06, 0.10, 0.03);
+
+  // manikin (lying on its back, head to the viewer's left; +z is the patient's right side)
+  var man = G.man = grp(sc); man.position.set(0, BY, BZ);
+  var skin = M(0xd9a988), cloth = M(0x3f5568);
+  G.chest = ball(man, skin, -0.40, 0.115, 0, 0.19, 0.115, 0.20);
+  ball(man, skin, -0.13, 0.10, 0, 0.21, 0.10, 0.18);
+  ball(man, cloth, 0.09, 0.10, 0, 0.15, 0.102, 0.19);
+  ball(man, skin, -0.74, 0.115, 0, 0.105, 0.105, 0.095);
+  ball(man, skin, -0.725, 0.215, 0, 0.018, 0.02, 0.016);
+  limb(man, skin, 0.05, [-0.66, 0.10, 0], [-0.57, 0.10, 0]);
+  [1, -1].forEach(function(s){
+    limb(man, skin, 0.045, [-0.50, 0.08, 0.235 * s], [-0.20, 0.06, 0.275 * s]);
+    limb(man, skin, 0.038, [-0.20, 0.06, 0.275 * s], [0.07, 0.05, 0.285 * s]);
+    ball(man, skin, -0.50, 0.08, 0.235 * s, 0.05, 0.05, 0.05); ball(man, skin, -0.20, 0.06, 0.275 * s, 0.042, 0.042, 0.042);
+    ball(man, skin, 0.12, 0.045, 0.285 * s, 0.055, 0.03, 0.04);
+    limb(man, cloth, 0.07, [0.12, 0.09, 0.10 * s], [0.52, 0.085, 0.11 * s]);
+    limb(man, cloth, 0.052, [0.52, 0.085, 0.11 * s], [0.92, 0.06, 0.11 * s]);
+    ball(man, cloth, 0.52, 0.085, 0.11 * s, 0.066, 0.066, 0.066);
+    box(man, 0.07, 0.19, 0.085, skin, 0.955, 0.10, 0.11 * s);
+  });
+  // defibrillator pads and cables
+  var padM = M(0xf4f6f8), cable = M(0x2b3440), dock = [-1.22, 0.95 - BY, -0.40];
+  G.pads = grp(man);
+  var p1 = box(G.pads, 0.12, 0.008, 0.085, padM, -0.50, 0.203, 0.09); p1.rotation.set(0.35, 0, 0.3);
+  var p2 = box(G.pads, 0.12, 0.008, 0.085, padM, -0.33, 0.168, -0.165); p2.rotation.x = -0.95;
+  limb(G.pads, cable, 0.005, [-0.50, 0.21, 0.09], [-0.62, 0.17, -0.10]); limb(G.pads, cable, 0.005, [-0.62, 0.17, -0.10], dock);
+  limb(G.pads, cable, 0.005, [-0.33, 0.17, -0.17], [-0.60, 0.04, -0.34]); limb(G.pads, cable, 0.005, [-0.60, 0.04, -0.34], dock);
+  // airway kit
+  G.bvm = grp(man);
+  ball(G.bvm, M(0xbfe3f2, {transparent:true, opacity:0.8}), -0.715, 0.225, 0, 0.065, 0.04, 0.058);
+  G.tube = grp(man);
+  limb(G.tube, M(0xf0f4f7), 0.009, [-0.705, 0.20, 0], [-0.74, 0.29, 0]);
+  G.tubeMark = ball(G.tube, M(0x2a6fc0), -0.71, 0.215, 0, 0.022, 0.012, 0.022);
+  G.bag = grp(man);
+  limb(G.bag, M(0xe8eef2), 0.014, [-0.72, 0.25, 0], [-0.77, 0.31, 0]);
+  ball(G.bag, M(0x2f7fb8), -0.86, 0.345, 0, 0.11, 0.06, 0.06);
+  G.capno = grp(man);
+  box(G.capno, 0.035, 0.035, 0.035, M(0xffd84d), -0.765, 0.305, 0);
+  limb(G.capno, M(0xffd84d), 0.004, [-0.765, 0.305, 0], dock);
+  // IV line and IO needle
+  var line = M(0xe8f1f6), bagEnd = [-1.15, 1.62 - BY, -0.42 - BZ];
+  G.iv = grp(man);
+  box(G.iv, 0.035, 0.014, 0.022, M(0x2a6fc0), -0.20, 0.108, 0.275);
+  limb(G.iv, line, 0.004, [-0.20, 0.108, 0.275], [-0.6, 0.03, 0.42]); limb(G.iv, line, 0.004, [-0.6, 0.03, 0.42], bagEnd);
+  G.io = grp(man);
+  limb(G.io, steel, 0.006, [0.58, 0.12, 0.11], [0.58, 0.19, 0.11]);
+  box(G.io, 0.03, 0.02, 0.03, M(0xf08c2e), 0.58, 0.195, 0.11);
+  limb(G.io, line, 0.004, [0.58, 0.195, 0.11], [0.2, 0.03, 0.44]); limb(G.io, line, 0.004, [0.2, 0.03, 0.44], [-0.6, 0.03, 0.44]); limb(G.io, line, 0.004, [-0.6, 0.03, 0.44], bagEnd);
+  // team member who does the compressions (stands on the far side of the bed)
+  var scrubs = M(0x2f8f83), cmp = G.comp = grp(sc);
+  [-0.31, -0.49].forEach(function(x){ limb(cmp, scrubs, 0.075, [x, 0, -1.42], [x, 0.95, -1.42]); });
+  G.cTorso = limb(cmp, scrubs, 0.17); G.cHead = ball(cmp, skin, 0, 0, 0, 0.10, 0.11, 0.10);
+  G.cArm = [limb(cmp, scrubs, 0.045), limb(cmp, scrubs, 0.045)];
+  G.cHands = box(cmp, 0.13, 0.045, 0.10, skin, 0, 0, 0);
+
+  // screens: monitor and team card on the wall, order panel near the hands
+  G.mon = mkPanel(1.2, 0.6, 1024, 512); G.mon.mesh.position.set(-1.0, 2.25, -2.08); G.mon.mesh.rotation.y = 0.25;
+  G.monScope = mkScope(G.mon.x, 20, 64, 984, 190, 4);
+  G.card = mkPanel(1.25, 0.78, 1024, 640); G.card.mesh.position.set(0.5, 2.22, -2.08); G.card.mesh.rotation.y = -0.18;
+  G.ord = mkPanel(0.84, 0.56, 1024, 684); G.ord.mesh.rotation.order = 'YXZ'; G.ord.mesh.position.set(0.36, 0.98, -0.42); G.ord.mesh.rotation.set(-0.8, -0.2, 0);
+
+  // VR controllers (hands work the same way: point, then pinch)
+  G.dot = ball(sc, new T.MeshBasicMaterial({color:0xffffff}), 0, 0, 0, 0.008, 0.008, 0.008); G.dot.visible = false;
+  G.ctrl = [0, 1].map(function(i){
+    var c = r.xr.getController(i);
+    var ln = new T.Line(new T.BufferGeometry().setFromPoints([new T.Vector3(0, 0, 0), new T.Vector3(0, 0, -1)]), new T.LineBasicMaterial({color:0xffffff}));
+    ln.scale.z = 2; c.add(ln); c.userData.line = ln;
+    c.addEventListener('connected', function(e){ c.userData.src = e.data; });
+    c.addEventListener('selectstart', function(){
+      var h = ctrlHit(c); if (h < 0) return;
+      try { c.userData.src.gamepad.hapticActuators[0].pulse(0.5, 40); } catch (e) {}
+      clickRect(h);
+    });
+    sc.add(c); return c;
+  });
+  r.xr.addEventListener('sessionend', function(){ G.xr = false; G.size = ''; resizeG(); roomBar(); });
+
+  // mouse and touch (3D strip: drag to turn the view; 3D room: drag to look, tap to press)
+  var el = r.domElement, dn = null;
+  el.addEventListener('pointerdown', function(e){ dn = {x:e.clientX, y:e.clientY, moved:false}; try { el.setPointerCapture(e.pointerId); } catch (x) {} });
+  el.addEventListener('pointermove', function(e){
+    if (G.xr) return;
+    if (dn){
+      var dx = e.clientX - dn.x, dy = e.clientY - dn.y;
+      if (dn.moved || Math.abs(dx) + Math.abs(dy) > 8){
+        dn.moved = true; dn.x = e.clientX; dn.y = e.clientY;
+        if (G.room){ G.look.yaw += dx * 0.004; G.look.pitch = Math.max(-1.2, Math.min(1.0, G.look.pitch + dy * 0.004)); }
+        else G.orbit = Math.max(-1.3, Math.min(1.3, G.orbit - dx * 0.008));
+      }
+    } else if (G.room) G.hover = screenHit(e);
+  });
+  el.addEventListener('pointerup', function(e){
+    var d = dn; dn = null;
+    if (G.xr || !G.room || !d || d.moved) return;
+    var h = screenHit(e); if (h >= 0) clickRect(h);
+    if (e.pointerType !== 'mouse') G.hover = -1;
+  });
+  el.addEventListener('pointerleave', function(){ if (!dn) G.hover = -1; });
+
+  G.ready = true; G.own = true; r.setAnimationLoop(frame);
+}
+function ordHit(){
+  var hit = G.ray.intersectObject(G.ord.mesh, false)[0];
+  if (!hit || !hit.uv){ G.hitD = 0; return -1; }
+  G.hitD = hit.distance; G.hitP = hit.point;
+  var px = hit.uv.x * G.ord.w, py = (1 - hit.uv.y) * G.ord.h;
+  for (var i = 0; i < G.rects.length; i++){ var q = G.rects[i]; if (!q.dis && px >= q.x && px <= q.x + q.w && py >= q.y && py <= q.y + q.h) return i; }
+  return -1;
+}
+function screenHit(e){
+  var b = G.r.domElement.getBoundingClientRect();
+  G.v2d.set((e.clientX - b.left) / b.width * 2 - 1, -((e.clientY - b.top) / b.height) * 2 + 1);
+  G.ray.setFromCamera(G.v2d, G.cam); return ordHit();
+}
+function ctrlHit(c){
+  G.m4.identity().extractRotation(c.matrixWorld);
+  G.ray.ray.origin.setFromMatrixPosition(c.matrixWorld); G.ray.ray.direction.set(0, 0, -1).applyMatrix4(G.m4);
+  return ordHit();
+}
+function clickRect(i){ var q = G.rects[i]; if (q && !q.dis && q.fn){ q.fn(); G.sigO = ''; } }
+function vrOpen(kind, arg){ G.menu = [kind, arg]; if (S && CFG.mode === 'coach') S.running = false; }
+function vrClose(){ G.menu = null; }
+
+/* --- what is on the order panel right now --- */
+function wrapLines(c, text, maxW){
+  var words = String(text).split(' '), line = '', out = [];
+  words.forEach(function(w){ var t = line ? line + ' ' + w : w; if (c.measureText(t).width > maxW && line){ out.push(line); line = w; } else line = t; });
+  if (line) out.push(line); return out;
+}
+function buildOrd(){
+  var R = [], W = 1024, H = 684, m = 14, c = G.ord.x, title = '', note = [];
+  function B(x, y, w, h, label, sub, style, fn, dis){ R.push({x:x, y:y, w:w, h:h, label:label, sub:sub || '', style:style || '', fn:fn, dis:!!dis}); }
+  function menuBtn(kind){ return function(){ if (S.phase === 'arrest') vrOpen(kind); }; }
+  if (S.phase === 'intro'){
+    title = 'VF / pVT arrest'; note = [(CFG.mode === 'coach' ? 'Pause and explain' : 'Real-time') + ' · ' + kit().label];
+    B(262, 290, 500, 150, 'Begin', '', 'primary', begin);
+  } else if (S.phase === 'ended'){
+    title = 'Case finished'; note = ['Exit the 3D room to read the full debrief with the reason for each point.'];
+    B(60, 290, 430, 150, 'Run this case again', '', 'primary', function(){ startCase(); });
+    B(534, 290, 430, 150, 'Exit 3D room', 'full debrief', '', exitRoom);
+  } else if (S.phase === 'rosc'){
+    title = 'ROSC at ' + fmt(S.roscT);
+    B(212, 290, 600, 150, 'See debrief and score', '', 'primary', function(){ A.end(); });
+  } else if (G.menu){
+    var d = menuDef(G.menu[0], G.menu[1]); title = d.title;
+    c.font = '400 28px ' + FB; note = d.note ? wrapLines(c, d.note, W - 60) : [];
+    var y0 = 74 + note.length * 36 + (note.length ? 12 : 0), n = d.opts.length, cols = (d.cols === 2 || n > 5) ? 2 : 1, rows = Math.ceil(n / cols);
+    var bh = Math.min(120, (H - y0 - 104 - (rows - 1) * m) / rows), bw = (W - 2 * m - (cols - 1) * m) / cols;
+    d.opts.forEach(function(o, i){
+      B(m + (i % cols) * (bw + m), y0 + Math.floor(i / cols) * (bh + m), bw, bh, o.label, o.sub, o.style, function(){ menuAct(o.a, o.v, vrOpen, vrClose); }, o.dis);
+    });
+    var bk = d.back || {label:'Close', a:'close', v:''};
+    B(m, H - 90, W - 2 * m, 76, bk.label, '', 'quiet', function(){ menuAct(bk.a, bk.v, vrOpen, vrClose); });
+  } else {
+    var w3 = (W - 4 * m) / 3, x = function(i){ return m + i * (w3 + m); };
+    if (CFG.mode === 'coach'){
+      B(x(0), m, w3, 84, 'Hint', '', 'quiet', function(){ S.hint = nextStep(); ui.card = true; });
+      if (S.running) B(x(1), m, w3, 84, 'Running… stop', '', 'quiet', function(){ S.running = false; ui.card = true; });
+      else B(x(1), m, w3, 84, S.warned ? 'Continue anyway' : 'Continue', '', 'primary', cont);
+    } else {
+      B(x(0), m, w3, 84, 'Speed ' + S.speed + '×', '', 'quiet', function(){ S.speed = S.speed === 1 ? 2 : S.speed === 2 ? 4 : 1; });
+      B(x(1), m, w3, 84, S.running ? 'Pause' : 'Resume', '', 'quiet', function(){ S.running = !S.running; ui.card = true; });
+    }
+    B(x(2), m, w3, 84, 'End case', '', 'quiet', menuBtn('end'));
+    B(m, 112, W - 2 * m, 116, S.cpr ? 'CPR running · press to pause' : (S.firstCprT == null ? 'Start CPR' : 'Resume CPR'), '', S.cpr ? 'on' : 'primary', function(){ A.cpr(); });
+    var gh = (H - 242 - m - 2 * m) / 3, y = function(i){ return 242 + i * (gh + m); };
+    B(x(0), y(0), w3, gh, S.pads ? 'Pads on' : 'Attach pads', '', '', function(){ A.pads(); }, S.pads);
+    B(x(1), y(0), w3, gh, 'Rhythm / pulse check', '', '', function(){ A.check(); });
+    B(x(2), y(0), w3, gh, 'Shock', S.lastE ? 'last ' + S.lastE + ' J' : '', 'shock', menuBtn('shock'));
+    B(x(0), y(1), w3, gh, 'IV / IO', '', '', menuBtn('access'));
+    B(x(1), y(1), w3, gh, 'Drugs', '', '', menuBtn('drugs'));
+    B(x(2), y(1), w3, gh, 'Airway', '', '', menuBtn('airway'));
+    B(x(0), y(2), w3, gh, 'Hs & Ts', '', '', menuBtn('hts'));
+    B(x(1), y(2), w3, gh, 'Sync shock', '', '', menuBtn('sync'));
+    B(x(2), y(2), w3, gh, 'Pacing', kit().pacer ? '' : 'no pacer', '', function(){ A.pace(); }, !kit().pacer);
+  }
+  G.rects = R; G.ordTitle = title; G.ordNote = note;
+}
+function rr(c, x, y, w, h, r){ c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+function drawOrd(){
+  var p = G.ord, c = p.x, FILL = {'':'#24384a', primary:'#2a6fc0', shock:'#c2410c', on:'#143d2a', quiet:'#18242f'};
+  c.fillStyle = '#0d151d'; c.fillRect(0, 0, p.w, p.h);
+  c.textBaseline = 'middle';
+  if (G.ordTitle){
+    c.textAlign = 'left'; c.fillStyle = '#ffffff'; c.font = '600 36px ' + FN; c.fillText(G.ordTitle, 22, 40);
+    c.fillStyle = '#b9c6d2'; c.font = '400 28px ' + FB; G.ordNote.forEach(function(l, i){ c.fillText(l, 22, 92 + i * 36); });
+  }
+  c.textAlign = 'center';
+  G.rects.forEach(function(q, i){
+    c.globalAlpha = q.dis ? 0.38 : 1;
+    rr(c, q.x, q.y, q.w, q.h, 16); c.fillStyle = FILL[q.style] || FILL['']; c.fill();
+    if (q.style === 'on'){ c.lineWidth = 5; c.strokeStyle = '#52c98f'; c.stroke(); }
+    if (i === G.hover && !q.dis){ c.fillStyle = 'rgba(255,255,255,0.16)'; c.fill(); c.lineWidth = 4; c.strokeStyle = '#ffffff'; c.stroke(); }
+    var fs = Math.min(40, Math.floor(q.h * 0.36)); c.font = '600 ' + fs + 'px ' + FB;
+    while (fs > 18 && c.measureText(q.label).width > q.w - 28){ fs -= 2; c.font = '600 ' + fs + 'px ' + FB; }
+    c.fillStyle = '#ffffff'; c.fillText(q.label, q.x + q.w / 2, q.y + q.h / 2 - (q.sub ? 13 : 0));
+    if (q.sub){ c.font = '400 22px ' + FB; c.fillStyle = '#d5dee6'; c.fillText(q.sub, q.x + q.w / 2, q.y + q.h / 2 + fs * 0.5 + 6); }
+  });
+  c.globalAlpha = 1; c.textAlign = 'left'; c.textBaseline = 'alphabetic';
+  p.tex.needsUpdate = true;
+}
+function drawCard(){
+  var p = G.card, c = p.x, W = p.w, H = p.h, x = 40, y = 58, mw = W - 80;
+  c.fillStyle = '#0d151d'; c.fillRect(0, 0, W, H); c.textAlign = 'left'; c.textBaseline = 'alphabetic';
+  function head(t){ c.font = '600 26px ' + FB; c.fillStyle = '#8fa3b5'; c.fillText(t.toUpperCase(), x, y); y += 44; }
+  function para(t, col, bold, size){
+    c.font = (bold ? '600 ' : '400 ') + size + 'px ' + FB; c.fillStyle = col; var lh = Math.round(size * 1.3);
+    wrapLines(c, t, mw).forEach(function(l){ if (y < H - 54){ c.fillText(l, x, y); y += lh; } }); y += 10;
+  }
+  if (S.phase === 'intro'){
+    head('Your patient'); introLines().forEach(function(l){ para(l, '#e6edf3', false, 30); });
+    para('Point at the panel in front of you and press Begin.', '#62adff', true, 30);
+  } else if (S.phase === 'ended'){
+    var r = G.score || (G.score = computeScore());
+    head('Debrief'); para((S.outcome || 'Case ended') + ' · Score ' + r.total + ' / 100', '#ffffff', true, 40);
+    r.items.forEach(function(i){
+      var full = i.pts === i.max, zero = i.pts === 0;
+      c.font = '400 25px ' + FB; c.fillStyle = full ? '#52c98f' : zero ? '#ff8078' : '#f0b429';
+      c.fillText((full ? '✓ ' : zero ? '✗ ' : '~ ') + i.title, x, y); c.textAlign = 'right'; c.fillText(i.pts + ' / ' + i.max, W - 40, y); c.textAlign = 'left'; y += 35;
+    });
+    if (r.ded){ c.fillStyle = '#ff8078'; c.fillText('Errors: minus ' + r.ded + ' points', x, y); }
+  } else if (S.phase === 'rosc'){
+    head('Return of spontaneous circulation'); para('ROSC at ' + fmt(S.roscT) + '. The pulse is back.', '#52c98f', true, 42);
+    para('The case ends here. Next would be post-ROSC care: airway and oxygen (SpO₂ 90–98%), blood pressure (MAP at least 65 mm Hg), a 12-lead ECG and urgent coronary angiography for this STEMI, and temperature control.', '#e6edf3', false, 30);
+  } else {
+    if (S.say){ head(S.say.who); para(S.say.text, '#ffffff', false, 36); }
+    if (CFG.mode === 'coach'){
+      if (S.fb){
+        var col = {good:'#52c98f', warn:'#f0b429', bad:'#ff8078', info:'#8fc3ff'}[S.fb.level] || '#8fc3ff', y0 = y - 30;
+        para(S.fb.msg, col, true, 32); if (S.fb.why) para(S.fb.why, '#c9d4de', false, 26);
+        c.fillStyle = col; c.fillRect(18, y0, 7, y - y0 - 16);
+      }
+      if (S.hint){ para('Hint: ' + S.hint[0], '#ffd84d', true, 30); para(S.hint[1], '#c9d4de', false, 26); }
+      if (!S.running) para((S.decision ? S.decision + ' ' : '') + 'Clock stopped. Give your orders, then press Continue.', '#8fa3b5', false, 26);
+    } else if (!S.running) para('Paused. Press Resume to restart the clock.', '#8fa3b5', false, 30);
+    c.font = '400 23px ' + FB; c.fillStyle = '#8fa3b5'; c.fillText(G.statusLine, x, H - 22);
+  }
+  p.tex.needsUpdate = true;
+}
+function drawMon(dt){
+  var p = G.mon, c = p.x, W = p.w, arrest = S.phase !== 'rosc';
+  if (!p.init){ p.init = true; c.fillStyle = ECGC.bg; c.fillRect(0, 0, W, p.h); }
+  if (S.phase !== 'ended') sweep(G.monScope, dt);
+  c.fillStyle = ECGC.bg; c.fillRect(0, 0, W, 60); c.fillRect(0, 262, W, 250);
+  c.textBaseline = 'alphabetic'; c.textAlign = 'left';
+  c.font = '600 26px ' + FB; c.fillStyle = ECGC.dim; c.fillText(S.pads ? 'VF / pVT arrest' : 'NO SIGNAL · pads not attached', 24, 42);
+  c.textAlign = 'right'; c.font = '600 46px ' + FN; c.fillStyle = '#ffffff'; c.fillText(fmt(S.t), W - 24, 46); c.textAlign = 'left';
+  [['HR', arrest ? '--' : '104', '/min', ECGC.ecg], ['BP', arrest ? '--/--' : '92/58', 'mm Hg', ECGC.bp], ['SpO₂', arrest ? '--' : '94', '%', ECGC.spo2],
+   ['ETCO₂', S.capno ? String(Math.round(arrest ? S.etco2 : 40)) : '--', kit().capno ? 'mm Hg' : 'no capnograph', ECGC.co2]].forEach(function(v, i){
+    var x = 28 + i * 250; c.fillStyle = v[3];
+    c.font = '600 24px ' + FB; c.fillText(v[0].toUpperCase(), x, 300);
+    c.font = '600 84px ' + FN; c.fillText(v[1], x, 386);
+    c.font = '400 20px ' + FB; c.fillText(v[2], x, 416);
+  });
+  var over = S.cpr && S.cycleT >= 120, col = S.phase === 'rosc' ? ECGC.dim : S.cpr ? (over ? ECGC.co2 : ECGC.dim) : ECGC.alert;
+  var txt = S.phase === 'rosc' ? 'ROSC' : S.cpr ? 'CPR ' + fmt(S.cycleT) : 'NO CPR ' + fmt(S.firstCprT == null ? S.t : S.handsOff);
+  c.fillStyle = col; c.font = '600 32px ' + FN; c.fillText(txt, 28, 482);
+  c.fillStyle = '#1c2833'; c.fillRect(250, 462, 660, 14);
+  if (S.cpr){ c.fillStyle = over ? ECGC.co2 : ECGC.ecg; c.fillRect(250, 462, 660 * Math.min(1, S.cycleT / 120), 14); }
+  c.fillStyle = col; c.fillText('2:00', 930, 482);
+  p.tex.needsUpdate = true;
+}
+
+/* --- keep the 3D scene in step with the case --- */
+function syncScene(dt){
+  var on = S.phase === 'arrest' || S.phase === 'rosc' || S.phase === 'intro';
+  var tube = S.airway === 'sga' || S.airway === 'ett';
+  G.time += dt;
+  G.pads.visible = S.pads; G.bvm.visible = S.airway === 'bvm'; G.tube.visible = tube; G.bag.visible = !!S.airway; G.capno.visible = S.capno;
+  if (tube) G.tubeMark.material.color.setHex(S.airway === 'ett' ? 0x2a6fc0 : 0x2e9e6b);
+  G.iv.visible = S.access === 'iv'; G.io.visible = S.access === 'io'; G.drip.visible = !!S.access;
+  var cpr = S.cpr && on;
+  G.cprK += ((cpr ? 1 : 0) - G.cprK) * Math.min(1, dt * 8);
+  var k = G.cprK, push = cpr ? 0.05 * Math.max(0, Math.sin(G.time * 2 * Math.PI * 110 / 60)) : 0;
+  var breath = S.phase === 'rosc' ? 0.006 * Math.sin(G.time * 1.7) : 0;
+  G.chest.position.y = 0.115 - push * 0.5 + breath; G.chest.scale.y = 0.115 - push * 0.5 + breath;
+  var age = S.flash ? performance.now() - S.flash : 9999;
+  G.man.position.y = G.BY + (age < 300 ? 0.035 * (1 - age / 300) : 0);
+  function L(a, b){ return a + (b - a) * k; }
+  var sx = -0.40, sh = [sx, L(1.45, G.BY + 0.70), L(-1.44, -0.98)], hand = [sx, L(0.86, G.BY + 0.25 - push), L(-1.40, G.BZ)];
+  setLimb(G.cTorso, [sx, 0.95, -1.42], sh);
+  G.cHead.position.set(sx, sh[1] + 0.21, sh[2] + L(0, 0.06));
+  [-1, 1].forEach(function(s, i){ setLimb(G.cArm[i], [sx + 0.19 * s, sh[1] - 0.04, sh[2]], [sx + L(0.21, 0.03) * s, hand[1] + 0.03, hand[2]]); });
+  G.cHands.visible = k > 0.5; G.cHands.position.set(sx, hand[1], hand[2]);
+}
+function resizeG(){
+  if (!G.ready || G.xr) return;
+  var host = G.room ? $('#roomGL') : $('#g3d');
+  if (G.r.domElement.parentNode !== host) host.appendChild(G.r.domElement);
+  var w = host.clientWidth, h = host.clientHeight; if (!w || !h) return;
+  G.size = w + 'x' + h + G.room;
+  G.r.setSize(w, h, false); G.cam.aspect = w / h; G.cam.fov = G.room ? (w / h < 1 ? 88 : 62) : 26; G.cam.updateProjectionMatrix();
+}
+function g3frame(dt){
+  var strip = G.view === '3d' && !$('#simScreen').hidden;
+  if (!S || !(G.room || strip)) return;
+  var host = G.room ? $('#roomGL') : $('#g3d');
+  if (!G.xr && G.size !== host.clientWidth + 'x' + host.clientHeight + G.room) resizeG();
+  syncScene(dt);
+  G.mon.mesh.visible = G.card.mesh.visible = G.ord.mesh.visible = G.room;
+  if (G.room){
+    G.statusLine = 'Defib: ' + (taskText('defib') || stIdle('defib')) + '   ·   Access: ' + (taskText('meds') || stIdle('meds')) + '   ·   Airway: ' + (taskText('airway') || stIdle('airway'));
+    drawMon(dt);
+    if (G.xr){
+      var hov = -1, dotOn = false;
+      G.ctrl.forEach(function(c){
+        if (!c.visible) return;
+        var h = ctrlHit(c); c.userData.line.scale.z = G.hitD || 2;
+        if (G.hitD && (h >= 0 || !dotOn)){ dotOn = true; G.dot.position.copy(G.hitP); }
+        if (h >= 0) hov = h;
+      });
+      G.hover = hov; G.dot.visible = dotOn;
+    } else G.dot.visible = false;
+    var sO = [S.phase, G.menu, S.cpr, S.pads, S.firstCprT == null, S.lastE, S.running, S.warned, S.speed, S.access, S.hts.marked, CFG.kit, CFG.mode].join('|');
+    if (sO !== G.sigB){ G.sigB = sO; buildOrd(); G.sigO = ''; }
+    if (G.sigO !== sO + G.hover){ G.sigO = sO + G.hover; drawOrd(); }
+    var sC = [S.phase, S.say && S.say.text, S.fb && S.fb.msg, S.hint && S.hint[0], S.decision, S.running, G.statusLine, S.log.length].join('|');
+    if (sC !== G.sigC){ G.sigC = sC; drawCard(); }
+  }
+  if (!G.xr){
+    if (G.room){ G.cam.position.set(0, 1.6, 0.9); G.cam.rotation.set(G.look.pitch, G.look.yaw, 0); }
+    else {
+      var el = 0.66, R = 2.05, tx = -0.05, ty = 0.92, tz = G.BZ;
+      G.cam.position.set(tx + Math.sin(G.orbit) * Math.cos(el) * R, ty + Math.sin(el) * R, tz + Math.cos(G.orbit) * Math.cos(el) * R); G.cam.lookAt(tx, ty, tz);
+    }
+  }
+  G.r.render(G.scene, G.cam);
+}
+
+/* --- switching views --- */
+function setView(v){
+  function apply(val, msg){
+    G.view = CFG.view = val; segSync('#segView', val); if (val === '3d') $('#dummy').setAttribute('hidden', ''); else $('#dummy').removeAttribute('hidden'); $('#g3d').hidden = val !== '3d';
+    $('#v2d').setAttribute('aria-pressed', val === '2d' ? 'true' : 'false'); $('#v3d').setAttribute('aria-pressed', val === '3d' ? 'true' : 'false');
+    $('#pvMsg').textContent = msg || ''; $('#pvMsg').hidden = !msg;
+    try { localStorage.setItem('acls.view', val); } catch (e) {}
+    if (val === '3d') resizeG();
+  }
+  if (v !== '3d') return apply('2d');
+  $('#pvMsg').textContent = 'Loading 3D…'; $('#pvMsg').hidden = false;
+  loadThree(function(ok){ if (ok) apply('3d'); else apply('2d', '3D could not load. It needs an internet connection.'); });
+}
+function roomBar(){
+  $('#vrBtn').hidden = true;
+  $('#roomMsg').textContent = 'Drag to look around. Tap a button on the panel to give an order.';
+  if (navigator.xr && navigator.xr.isSessionSupported){
+    navigator.xr.isSessionSupported('immersive-vr').then(function(ok){
+      $('#vrBtn').hidden = !ok || G.xr;
+      if (!ok) $('#roomMsg').textContent += ' For VR, open the public link in the Meta Quest browser.';
+    }).catch(function(){});
+  } else $('#roomMsg').textContent += ' For VR, open the public link in the Meta Quest browser.';
+}
+function enterRoom(){
+  G.room = true; G.menu = null; G.sigB = G.sigC = ''; closeSheet();
+  $('#room').hidden = false; $('#roomMsg').textContent = 'Loading the 3D room…'; $('#vrBtn').hidden = true;
+  loadThree(function(ok){
+    if (!G.room) return;
+    if (!ok){ $('#roomMsg').textContent = 'The 3D room could not load. It needs an internet connection. Tap Exit to go back.'; return; }
+    G.size = ''; resizeG(); roomBar();
+  });
+}
+function exitRoom(){
+  if (G.session){ try { G.session.end(); } catch (e) {} }
+  G.room = false; G.menu = null; G.hover = -1; $('#room').hidden = true; G.size = '';
+  if (G.ready) resizeG();
+  if (S && S.phase === 'intro') showIntro();
+  ui.card = true;
+}
+function enterVR(){
+  if (!navigator.xr || !G.ready) return;
+  navigator.xr.requestSession('immersive-vr', {optionalFeatures:['local-floor', 'hand-tracking']}).then(function(s){
+    G.session = s; G.xr = true; $('#vrBtn').hidden = true;
+    s.addEventListener('end', function(){ G.session = null; });
+    return G.r.xr.setSession(s);
+  }).catch(function(e){ G.xr = false; $('#roomMsg').textContent = 'VR could not start on this device: ' + (e && e.message ? e.message : 'not available') + '.'; });
+}
+$('#v2d').addEventListener('click', function(){ setView('2d'); });
+$('#v3d').addEventListener('click', function(){ setView('3d'); });
+$('#vRoom').addEventListener('click', enterRoom);
+$('#roomExit').addEventListener('click', exitRoom);
+$('#vrBtn').addEventListener('click', enterVR);
+$('#startRoomBtn').addEventListener('click', function(){ G.room = true; startCase(); enterRoom(); });
+try { if (localStorage.getItem('acls.view') === '3d'){ CFG.view = '3d'; segSync('#segView', '3d'); } } catch (e) {}
 
 /* ---------------- debrief ---------------- */
 function showDebrief(){
@@ -999,7 +1586,7 @@ function showDebrief(){
   r.items.forEach(function(i){
     var cls = i.pts === i.max ? 'full' : i.pts === 0 ? 'zero' : 'part';
     h += '<div class="item ' + cls + '"><span class="mark">' + (cls === 'full' ? '✓' : cls === 'zero' ? '✗' : '~') + '</span><h3>' + esc(i.title) + '</h3><span class="pts">' + i.pts + ' / ' + i.max + '</span>' +
-         '<p>' + esc(i.did) + '</p><p class="why"><b>Guideline:</b> ' + esc(i.why) + '</p></div>';
+         '<p>' + esc(i.did) + '</p><p class="why"><b>Guideline:</b> ' + esc(i.why) + '</p><p class="why"><b>Source:</b> ' + esc(i.src) + '</p></div>';
   });
   h += '</div></div>';
   if (r.errors.length){
@@ -1008,7 +1595,7 @@ function showDebrief(){
     h += '</div></div>';
   }
   h += '<div class="panel"><p class="eyebrow">Event log</p><div class="logrows">' + S.log.map(function(l){ return '<div><time>' + fmt(l.t) + '</time><span class="' + l.cls + '">' + esc(l.text) + '</span></div>'; }).join('') + '</div></div>';
-  h += '<div class="panel"><p class="eyebrow">Sources</p><ul class="srcs"><li>' + SRC9 + '</li><li>Meaney PA, et al. CPR Quality: Improving Cardiac Resuscitation Outcomes. Circulation 2013;128:417–435 (the 80% compression fraction goal).</li></ul></div>';
+  h += '<div class="panel"><p class="eyebrow">Sources</p><ul class="srcs"><li>' + SRC9 + '</li><li>Disque K. Advanced Cardiac Life Support Provider Handbook (2020–2025 guidelines and standards), version 2021.01. Satori Continuum Publishing; 2021. Used where the 2025 text could not be checked.</li><li>Meaney PA, et al. CPR Quality: Improving Cardiac Resuscitation Outcomes. Circulation 2013;128:417–435 (the 80% compression fraction goal).</li></ul></div>';
   h += '<button type="button" class="btn primary wide" id="againBtn">Run this case again</button><button type="button" class="btn wide" id="setupBtn">Change settings</button>';
   $('#debriefBody').innerHTML = h;
   show('debrief'); $('#debrief').scrollTop = 0;
@@ -1019,19 +1606,24 @@ function showDebrief(){
 /* ---------------- main loop ---------------- */
 var lastFrame = performance.now(), manual = false;
 function frame(now){
-  var dt = Math.min(0.5, (now - lastFrame) / 1000); lastFrame = now;
+  if (typeof now !== 'number') now = performance.now();
+  var dt = Math.min(0.5, Math.max(0, (now - lastFrame) / 1000)); lastFrame = now;
   if (S && S.phase !== 'ended' && !$('#simScreen').hidden){
     if (!manual && S.running && S.phase === 'arrest') advance(dt * (CFG.mode === 'coach' ? 6 : S.speed));
     if (S && S.phase !== 'ended'){ drawECG(dt); render(); }
   }
-  requestAnimationFrame(frame);
+  if (G.ready) g3frame(dt);
 }
-requestAnimationFrame(frame);
+/* The browser drives the loop until the 3D library is loaded; after that the 3D renderer drives it, so it keeps running inside a VR headset. */
+function winLoop(now){ if (G.own) return; frame(now); requestAnimationFrame(winLoop); }
+requestAnimationFrame(winLoop);
 
 /* hooks used by the automated tests */
 window.ACLS = {
   get S(){ return S; }, CFG:CFG, A:A, start:startCase, begin:begin, cont:cont, score:computeScore, nextStep:function(){ return nextStep(); },
-  setManual:function(v){ manual = v; },
+  setManual:function(v){ manual = v; }, G:G, enterRoom:enterRoom, exitRoom:exitRoom, setView:setView,
+  press:function(label){ for (var i = 0; i < G.rects.length; i++){ if (G.rects[i].label.indexOf(label) === 0 && !G.rects[i].dis){ clickRect(i); return true; } } return false; },
+  rectXY:function(label){ var q = G.rects.filter(function(x){ return x.label.indexOf(label) === 0; })[0]; if (!q) return null; var m = G.ord.mesh, g = m.geometry.parameters, v = new THREE.Vector3(((q.x + q.w / 2) / G.ord.w - 0.5) * g.width, (0.5 - (q.y + q.h / 2) / G.ord.h) * g.height, 0); m.localToWorld(v); v.project(G.cam); var b = G.r.domElement.getBoundingClientRect(); return [b.left + (v.x + 1) / 2 * b.width, b.top + (1 - v.y) / 2 * b.height]; },
   run:function(sec){ advance(sec); render(); }
 };
 })();
