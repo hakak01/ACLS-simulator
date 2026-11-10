@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ACLS Case Simulator</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600&display=swap">
+<style>
+/* Layout: one-screen bedside console. Dark patient monitor on top, team/coach card in the middle,
+   order pad at the bottom where the thumb reaches. Setup and debrief are plain reading pages. */
+:root{
+  --bg:#e9edf1; --surface:#ffffff; --surface-2:#f3f5f8; --ink:#15202b; --muted:#566473; --line:#cdd5de;
+  --accent:#0a5aa8; --on-accent:#ffffff; --shock:#c2410c; --on-shock:#ffffff;
+  --good:#17753f; --warn:#8a5300; --bad:#b42318; --scrim:rgb(8 14 20 / .55);
+  --mon-bg:#060a0e; --mon-line:#1c2833; --mon-ink:#b9c6d2; --ecg:#3fe06a; --bp:#ff8a8a; --spo2:#4fd6ff; --co2:#ffd84d; --mon-alert:#ff6b5e;
+  --font:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-num:"IBM Plex Sans Condensed","IBM Plex Sans",system-ui,sans-serif;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e141b; --surface:#18212b; --surface-2:#1f2a36; --ink:#e6edf3; --muted:#95a3b1; --line:#2c3947;
+    --accent:#62adff; --on-accent:#06223f; --shock:#ff8f52; --on-shock:#2b1203;
+    --good:#52c98f; --warn:#f0b429; --bad:#ff8078; --scrim:rgb(0 0 0 / .65); color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e141b; --surface:#18212b; --surface-2:#1f2a36; --ink:#e6edf3; --muted:#95a3b1; --line:#2c3947;
+  --accent:#62adff; --on-accent:#06223f; --shock:#ff8f52; --on-shock:#2b1203;
+  --good:#52c98f; --warn:#f0b429; --bad:#ff8078; --scrim:rgb(0 0 0 / .65); color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.45 var(--font);-webkit-text-size-adjust:100%}
+[hidden]{display:none!important}
+button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+h1,h2,h3{font-family:var(--font-num);font-weight:600;margin:0;text-wrap:balance;letter-spacing:.01em}
+p{margin:0}
+.screen{height:100%;overflow-y:auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px}
+.col{max-width:34rem;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.muted{color:var(--muted)} .small{font-size:13px}
+.eyebrow{font:600 12px/1.2 var(--font);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+
+/* buttons */
+.btn{min-height:46px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font-weight:600;line-height:1.2;text-align:center}
+.btn:active{transform:translateY(1px)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.shock{background:var(--shock);border-color:var(--shock);color:var(--on-shock)}
+.btn.quiet{background:transparent}
+.btn.wide{width:100%}
+.btn small{display:block;font-weight:400;font-size:12px;opacity:.85}
+.pad.locked{opacity:.45;pointer-events:none}
+
+/* setup */
+.setup h1{font-size:30px;line-height:1.1}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.seg button{min-height:64px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);padding:8px 10px;text-align:left;line-height:1.25}
+.seg button b{display:block;font-weight:600}
+.seg button span{font-size:12.5px;color:var(--muted)}
+.seg button[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:color-mix(in srgb,var(--accent) 9%,var(--surface))}
+.cases{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.cases li{display:flex;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:8px;background:var(--surface-2)}
+.cases li.on{background:color-mix(in srgb,var(--accent) 12%,var(--surface));font-weight:600}
+.cases li span:last-child{font-size:12.5px;color:var(--muted);font-weight:400;white-space:nowrap}
+
+/* sim */
+.sim{display:flex;flex-direction:column;gap:8px;max-width:34rem;margin:0 auto;height:100%;min-height:35rem}
+.screen.simwrap{padding-block:8px}
+.top{display:flex;align-items:center;gap:8px}
+.top .name{font:600 16px/1.1 var(--font-num);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top .name small{display:block;font:400 11.5px/1.2 var(--font);color:var(--muted)}
+.clock{font:600 24px/1 var(--font-num);font-variant-numeric:tabular-nums}
+.top .btn{min-height:36px;padding:4px 10px;font-size:13px}
+.monitor{background:var(--mon-bg);border-radius:12px;padding:8px 10px 8px;color:var(--mon-ink);display:flex;flex-direction:column;gap:6px}
+.monitor canvas{width:100%;height:84px;display:block}
+.vitals{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.vital{min-width:0}
+.vital label{display:block;font:600 10.5px/1.1 var(--font);letter-spacing:.08em;text-transform:uppercase;opacity:.8}
+.vital b{display:block;font:600 26px/1.05 var(--font-num);font-variant-numeric:tabular-nums;white-space:nowrap}
+.vital small{font:400 10.5px/1 var(--font);opacity:.7}
+.v-hr{color:var(--ecg)} .v-bp{color:var(--bp)} .v-spo2{color:var(--spo2)} .v-co2{color:var(--co2)}
+.cprbar{display:flex;align-items:center;gap:8px;font:600 13px/1 var(--font-num);font-variant-numeric:tabular-nums;letter-spacing:.03em}
+.cprbar .track{flex:1;height:6px;border-radius:3px;background:var(--mon-line);overflow:hidden}
+.cprbar .fill{height:100%;width:0;background:var(--ecg)}
+.cprbar.over .fill{background:var(--co2)} .cprbar.over{color:var(--co2)}
+.cprbar.off{color:var(--mon-alert)}
+.status{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.status div{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:4px 8px;font-size:12px;line-height:1.25;min-width:0}
+.status b{display:block;font:600 10.5px/1.2 var(--font);letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.status span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+.status .busy span{color:var(--accent)}
+.card{flex:1 1 7.5rem;min-height:7.5rem;overflow:hidden;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.card .body{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:8px}
+.card .say{font-size:14.5px}
+.card .say b{font-weight:600}
+.note{border-radius:8px;padding:8px 10px;font-size:14px;border:1px solid transparent}
+.note b{font-weight:600}
+.note .why{display:block;margin-top:4px;font-size:13px;color:var(--ink);opacity:.9}
+.note.good{background:color-mix(in srgb,var(--good) 13%,var(--surface));border-color:color-mix(in srgb,var(--good) 40%,var(--surface))}
+.note.warn{background:color-mix(in srgb,var(--warn) 14%,var(--surface));border-color:color-mix(in srgb,var(--warn) 45%,var(--surface))}
+.note.bad{background:color-mix(in srgb,var(--bad) 12%,var(--surface));border-color:color-mix(in srgb,var(--bad) 45%,var(--surface))}
+.note.info{background:var(--surface-2);border-color:var(--line)}
+.card .row{display:flex;gap:8px}
+.card .row .btn{flex:1;min-height:40px}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.pad .btn{min-height:48px;font-size:14px;padding:6px 4px}
+.pad .cpr{grid-column:1/-1;min-height:52px;font-size:16px}
+.pad .cpr.on{background:var(--surface);color:var(--ink);border:2px solid var(--good)}
+.logline{display:flex;gap:8px;align-items:center;border:1px solid var(--line);background:var(--surface);border-radius:8px;min-height:34px;padding:4px 10px;font-size:12.5px;text-align:left;width:100%}
+.logline span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.logline b{font-weight:600;color:var(--accent)}
+
+/* sheet */
+.overlay{position:fixed;inset:0;background:var(--scrim);display:flex;align-items:flex-end;justify-content:center;z-index:20}
+.sheet{background:var(--surface);width:100%;max-width:34rem;max-height:86%;overflow-y:auto;border-radius:16px 16px 0 0;
+  padding:12px max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:10px}
+.sheet header{display:flex;align-items:center;gap:8px}
+.sheet header h2{flex:1;font-size:19px}
+.sheet .list{display:flex;flex-direction:column;gap:8px}
+.sheet .list .btn{text-align:left;padding:10px 12px}
+.sheet .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.finding{background:var(--surface-2);border-radius:8px;padding:8px 10px;font-size:13.5px;display:flex;flex-direction:column;gap:8px}
+.logrows{display:flex;flex-direction:column;gap:2px;font-size:13px}
+.logrows div{display:grid;grid-template-columns:3.2em 1fr;gap:8px;padding:3px 0;border-bottom:1px solid var(--line)}
+.logrows time{font-variant-numeric:tabular-nums;color:var(--muted)}
+.logrows .you{font-weight:600}
+@media (max-height:700px){ .sim{gap:6px} .monitor canvas{height:60px} .vital b{font-size:22px} .pad .btn{min-height:42px} .pad .cpr{min-height:46px} }
+
+/* debrief */
+.scorebox{display:flex;align-items:center;gap:16px}
+.scorebox .num{font:600 64px/1 var(--font-num);font-variant-numeric:tabular-nums}
+.scorebox .num small{font-size:22px;color:var(--muted)}
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.tile{background:var(--surface-2);border-radius:10px;padding:8px 10px}
+.tile b{display:block;font:600 22px/1.1 var(--font-num);font-variant-numeric:tabular-nums}
+.tile span{font-size:12.5px;color:var(--muted)}
+.item{border-top:1px solid var(--line);padding:10px 0;display:grid;grid-template-columns:1.6em 1fr auto;gap:4px 8px;align-items:baseline}
+.item:first-child{border-top:0}
+.item .mark{font-weight:600}
+.item.full .mark{color:var(--good)} .item.part .mark{color:var(--warn)} .item.zero .mark{color:var(--bad)}
+.item h3{font:600 15px/1.25 var(--font)}
+.item .pts{font:600 14px/1 var(--font-num);font-variant-numeric:tabular-nums;color:var(--muted)}
+.item p{grid-column:2/-1;font-size:13.5px}
+.item p.why{color:var(--muted)}
+.srcs{font-size:12.5px;color:var(--muted);display:flex;flex-direction:column;gap:4px;padding-left:1.1em;margin:0}
+@media (prefers-reduced-motion: no-preference){ .cpr.on .dot{animation:beat .545s infinite} }
+.dot{display:inline-block;width:.6em;height:.6em;border-radius:50%;background:var(--good);margin-right:.45em}
+@keyframes beat{0%{transform:scale(1.35)}60%{transform:scale(.8)}100%{transform:scale(1.35)}}
+</style>
+</head>
+<body>
+
+<!-- ============ SETUP ============ -->
+<section class="screen setup" id="setup">
+  <div class="col">
+    <div>
+      <p class="eyebrow">Megacode practice · 2025 AHA ACLS</p>
+      <h1>ACLS Case Simulator</h1>
+      <p class="muted">You are the team leader. You give the orders, the team carries them out, and the patient responds. At the end you get a score with the guideline reason for each point.</p>
+    </div>
+
+    <div class="panel">
+      <p class="eyebrow">1 · How time runs</p>
+      <div class="seg" id="segMode">
+        <button type="button" id="modeCoach" data-v="coach" aria-pressed="true"><b>Pause and explain</b><span>The clock stops at each decision. You see why each order was right or wrong.</span></button>
+        <button type="button" id="modeReal" data-v="real" aria-pressed="false"><b>Real-time megacode</b><span>The clock keeps running. No feedback until the debrief.</span></button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <p class="eyebrow">2 · Equipment</p>
+      <div class="seg" id="segKit">
+        <button type="button" id="kitIdeal" data-v="ideal" aria-pressed="true"><b>Ideal AHA setup</b><span>Biphasic defibrillator, pacer, capnography, advanced airway, all drugs.</span></button>
+        <button type="button" id="kitLow" data-v="low" aria-pressed="false"><b>Low-resource</b><span>Monophasic defibrillator, no pacer, no capnography, bag-mask only, no amiodarone or adenosine.</span></button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <p class="eyebrow">3 · Case</p>
+      <ul class="cases">
+        <li class="on"><span>VF / pulseless VT arrest</span><span>ready</span></li>
+        <li><span>Asystole / PEA</span><span>coming next</span></li>
+        <li><span>Post-ROSC care</span><span>coming next</span></li>
+        <li><span>Symptomatic bradycardia</span><span>coming next</span></li>
+        <li><span>Tachycardia with a pulse</span><span>coming next</span></li>
+        <li><span>Hyperkalaemia arrest</span><span>coming next</span></li>
+        <li><span>Massive PE arrest</span><span>coming next</span></li>
+      </ul>
+      <button type="button" class="btn primary wide" id="startBtn">Start VF / pVT case</button>
+    </div>
+
+    <p class="small muted">For training only. This is not a medical device and does not replace your local protocols. Content follows the 2025 AHA Guidelines for CPR and Emergency Cardiovascular Care, Part 9: Adult Advanced Life Support (Wigginton JG, et al. Circulation 2025;152(16 suppl 2):S538–S577).</p>
+  </div>
+</section>
+
+<!-- ============ SIMULATOR ============ -->
+<section class="screen simwrap" id="simScreen" hidden>
+  <div class="sim">
+    <div class="top">
+      <div class="name">VF / pVT arrest<small id="modeLabel"></small></div>
+      <div class="clock" id="clock" aria-label="Case time">0:00</div>
+      <button type="button" class="btn" id="speedBtn" aria-label="Clock speed">1×</button>
+      <button type="button" class="btn" id="pauseBtn">Pause</button>
+      <button type="button" class="btn" id="endBtn">End</button>
+    </div>
+
+    <div class="monitor">
+      <canvas id="ecg" aria-label="ECG trace"></canvas>
+      <div class="vitals">
+        <div class="vital v-hr"><label>HR</label><b id="vHR">--</b><small>/min</small></div>
+        <div class="vital v-bp"><label>BP</label><b id="vBP">--/--</b><small>mm Hg</small></div>
+        <div class="vital v-spo2"><label>SpO₂</label><b id="vSp">--</b><small>%</small></div>
+        <div class="vital v-co2"><label>ETCO₂</label><b id="vCO">--</b><small id="vCOu">mm Hg</small></div>
+      </div>
+      <div class="cprbar off" id="cprbar"><span id="cprTxt">NO CPR 0:00</span><div class="track"><div class="fill" id="cprFill"></div></div><span>2:00</span></div>
+    </div>
+
+    <div class="status">
+      <div id="stDefib"><b>Defib</b><span>Pads off</span></div>
+      <div id="stAccess"><b>Access</b><span>None</span></div>
+      <div id="stAirway"><b>Airway</b><span>None</span></div>
+    </div>
+
+    <div class="card" id="card" aria-live="polite"></div>
+
+    <div class="pad" id="pad">
+      <button type="button" class="btn primary cpr" id="bCPR">Start CPR</button>
+      <button type="button" class="btn" id="bPads">Attach pads</button>
+      <button type="button" class="btn" id="bCheck">Rhythm / pulse check</button>
+      <button type="button" class="btn shock" id="bShock">Shock</button>
+      <button type="button" class="btn" id="bAccess">IV / IO</button>
+      <button type="button" class="btn" id="bDrugs">Drugs</button>
+      <button type="button" class="btn" id="bAirway">Airway</button>
+      <button type="button" class="btn" id="bHT">Hs &amp; Ts</button>
+      <button type="button" class="btn" id="bSync">Sync shock</button>
+      <button type="button" class="btn" id="bPace">Pacing</button>
+    </div>
+
+    <button type="button" class="logline" id="bLog"><span id="logLast">Event log</span><b>Log</b></button>
+  </div>
+</section>
+
+<!-- ============ DEBRIEF ============ -->
+<section class="screen" id="debrief" hidden>
+  <div class="col" id="debriefBody"></div>
+</section>
+
+<!-- ============ SHEET ============ -->
+<div class="overlay" id="overlay" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <header><h2 id="sheetTitle"></h2><button type="button" class="btn quiet" id="sheetClose">Close</button></header>
+    <div id="sheetBody"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(s){ return document.querySelector(s); };
+function fmt(s){ s = Math.max(0, Math.floor(s)); return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0'); }
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+/* ---------------- settings and fixed data ---------------- */
+var CFG = { mode:'coach', kit:'ideal' };
+var WEIGHT = 70;
+var SRC9 = 'Wigginton JG, et al. Part 9: Adult Advanced Life Support: 2025 American Heart Association Guidelines for CPR and Emergency Cardiovascular Care. Circulation 2025;152(16 suppl 2):S538–S577. doi:10.1161/CIR.0000000000001376';
+var KITS = {
+  ideal:{ label:'Ideal setup', defib:'Biphasic', energies:[50,100,150,200], okE:[150,200], bestE:200, pacer:true, capno:true, adv:true,
+          drugs:{epi:1,amio:1,lido:1,atro:1,aden:1,mag:1} },
+  low:  { label:'Low-resource', defib:'Monophasic', energies:[100,200,300,360], okE:[360], bestE:360, pacer:false, capno:false, adv:false,
+          drugs:{epi:1,amio:0,lido:1,atro:1,aden:0,mag:1} }
+};
+var DRUGS = {
+  epi:{ name:'Epinephrine (adrenaline)', short:'Epinephrine', doses:[['0.1','0.1 mg'],['0.5','0.5 mg'],['1','1 mg'],['3','3 mg']] },
+  amio:{ name:'Amiodarone', short:'Amiodarone', doses:[['150','150 mg'],['300','300 mg'],['450','450 mg'],['900','900 mg']] },
+  lido:{ name:'Lidocaine', short:'Lidocaine', doses:[['35','35 mg (0.5 mg/kg)'],['70','70 mg (1 mg/kg)'],['100','100 mg (about 1.5 mg/kg)'],['210','210 mg (3 mg/kg)']] },
+  atro:{ name:'Atropine', short:'Atropine', doses:[['0.5','0.5 mg'],['1','1 mg'],['3','3 mg']] },
+  aden:{ name:'Adenosine', short:'Adenosine', doses:[['6','6 mg'],['12','12 mg']] },
+  mag:{ name:'Magnesium sulfate', short:'Magnesium', doses:[['1','1 g'],['2','2 g']] }
+};
+var HT = [
+  ['hypovol','Hypovolemia','No bleeding and no fluid loss. Abdomen soft. Unlikely.'],
+  ['hypoxia','Hypoxia','He was talking, with SpO₂ 97% on room air, just before he collapsed. Airway is clear. Unlikely as the first cause.'],
+  ['acid','Hydrogen ion (acidosis)','No kidney disease, no diabetes, and the arrest was witnessed with CPR at once. Unlikely as the cause.'],
+  ['k','Hypo- / hyperkalemia','No kidney disease and no drugs that change potassium. No dialysis. Unlikely.'],
+  ['temp','Hypothermia','Skin is warm. Temperature on arrival 36.6 °C. No.'],
+  ['ptx','Tension pneumothorax','Both sides of the chest rise with ventilation. Trachea is central. No trauma. No.'],
+  ['tamp','Tamponade (cardiac)','No trauma, no recent cardiac procedure, no known effusion. Unlikely.'],
+  ['tox','Toxins','No overdose history. His only regular drug is amlodipine. Unlikely.'],
+  ['pe','Thrombosis, pulmonary','No leg swelling, no recent surgery or long travel, and the first rhythm was shockable. Unlikely.'],
+  ['mi','Thrombosis, coronary','Crushing central chest pain for 30 minutes in a smoker with hypertension. The arrival ECG showed ST elevation in V1–V4. This is the most likely cause.']
+];
+var WHY = {
+  cpr:'Start chest compressions as soon as cardiac arrest is recognised. Good CPR means 100–120 compressions per minute, at least 5 cm (2 inches) deep, full chest recoil, and very few pauses.',
+  pads:'Attach the defibrillator as soon as it arrives, while CPR continues. In VF/pVT the time to the first shock matters most for survival.',
+  shock1:'VF and pulseless VT are shockable rhythms. Give one shock as soon as the defibrillator is ready. Keep CPR going until the shock.',
+  eBi:'Biphasic defibrillator: use the dose the maker recommends (120–200 J). If you do not know it, use the maximum dose.',
+  eMono:'Monophasic defibrillator: 360 J for every shock.',
+  resume:'Resume chest compressions right after the shock. Do not stop to check the rhythm or pulse. Check again after 2 minutes of CPR.',
+  ccf:'Every pause in compressions drops blood flow to the heart and brain. Keep each pause under 10 seconds. Chest compression fraction should be at least 60%; good teams reach 80% (AHA CPR Quality consensus statement, Circulation 2013;128:417).',
+  twomin:'Give CPR in 2-minute cycles. Check the rhythm after each cycle, and keep the pause short.',
+  access:'Try IV access first. If IV fails or is not possible, use the intraosseous (IO) route.',
+  epi:'Epinephrine 1 mg IV/IO every 3–5 minutes. In a shockable rhythm, CPR and shocks come first: give epinephrine after the first shocks have failed (the algorithm places it after the 2nd shock).',
+  anti:'For VF/pVT that does not respond to shocks, give amiodarone 300 mg (second dose 150 mg) OR lidocaine 1–1.5 mg/kg (second dose 0.5–0.75 mg/kg). The algorithm places this after the 3rd shock.',
+  airway:'Give oxygen and ventilate with a bag-mask, 30 compressions to 2 breaths. An advanced airway may be considered, but it must not delay CPR or shocks. With an advanced airway, give 1 breath every 6 seconds (10 per minute) with continuous compressions.',
+  capno:'Waveform capnography confirms the position of an advanced airway, helps you judge CPR quality, and a sudden sustained rise in ETCO₂ suggests ROSC.',
+  hts:'During CPR, look for and treat reversible causes (the Hs and Ts). Here the story and the ST elevation point to a coronary thrombosis, so the patient needs urgent coronary angiography after ROSC.',
+  atro:'Atropine has no role in VF/pVT arrest. It is a drug for symptomatic bradycardia with a pulse.',
+  aden:'Adenosine is for a stable, regular tachycardia with a pulse. It has no role in a pulseless arrest.',
+  mag:'Routine magnesium does not help in cardiac arrest. Keep it for torsades de pointes (polymorphic VT with a long QT).',
+  sync:'Synchronized cardioversion is for an unstable tachycardia WITH a pulse. A pulseless patient needs an unsynchronized shock (defibrillation). In VF the machine cannot find an R wave, so it may never fire.',
+  pace:'Pacing is for symptomatic bradycardia with a pulse. It does not treat VF/pVT and it delays the shock.',
+  organised:'Shock only VF or pulseless VT. An organised rhythm needs a pulse check, not a shock.',
+  blind:'Stop compressions briefly and look at the rhythm before each shock. During compressions the ECG shows only CPR artefact.',
+  stacked:'Give one shock, then 2 minutes of CPR, then check the rhythm again. Do not give shocks one after another.',
+  airwayEarly:'Do not delay chest compressions or the first shock for an advanced airway. Bag-mask ventilation is enough at the start.',
+  both:'The guideline offers amiodarone OR lidocaine. There is no evidence for giving both together.'
+};
+
+/* ---------------- simulation state ---------------- */
+var S = null;
+function newState(opts){
+  opts = opts || {};
+  return {
+    t:0, running:false, speed:1, phase:'intro',
+    rhythm: opts.rhythm || (Math.random() < 0.7 ? 'VF' : 'pVT'),
+    ivFails: opts.ivFails != null ? !!opts.ivFails : Math.random() < 0.3,
+    latent:false, easy:false, roscT:null, outcome:null,
+    cpr:false, firstCprT:null, cprOn:0, cycleT:0, cycleFlag:false, handsOff:0, pauseWhy:'start', cycles:[], pauses:[],
+    pads:false, padsT:null, needShock:false, lastLookT:null, checks:[],
+    shocks:[], awaitShock:null,
+    access:null, accessT:null, ivTried:false, ivFailed:false, ioFirst:false, ivRetry:false,
+    airway:null, bvmT:null, advT:null, capno:false, capnoT:null, etco2:0,
+    drugs:[], lastEpiT:null, epiDueFlag:false, noAccessOrders:0,
+    hts:{viewed:{}, marked:null},
+    errors:[], log:[], q:{defib:[],meds:[],airway:[]},
+    say:null, fb:null, decision:null, hint:null, warned:false, lastE:null, flash:0
+  };
+}
+function kit(){ return KITS[CFG.kit]; }
+function shockable(){ return S.rhythm === 'VF' || S.rhythm === 'pVT'; }
+function ccf(){ return S.t > 0 ? S.cprOn / S.t : 0; }
+function countDrug(k){ return S.drugs.filter(function(d){ return d.k === k; }).length; }
+function antiCount(){ return countDrug('amio') + countDrug('lido'); }
+
+function log(text, cls){ S.log.push({t:S.t, text:text, cls:cls||''}); ui.card = true; }
+function say(who, text){ S.say = {who:who, text:text}; log(who + ': ' + text, 'team'); }
+function order(text){ log('You: ' + text, 'you'); S.hint = null; S.warned = false; if (CFG.mode === 'coach') S.running = false; }
+function fb(level, msg, why){ S.fb = {level:level, msg:msg, why:why||''}; ui.card = true; }
+function err(code, text, why){ S.errors.push({t:S.t, code:code, text:text, why:why}); }
+function decision(text){ if (CFG.mode === 'coach'){ S.running = false; S.decision = text; ui.card = true; } }
+
+function addTask(role, kind, label, dur, done, start){ S.q[role].push({kind:kind, label:label, left:dur, done:done, start:start}); }
+function hasTask(role, kind){ return S.q[role].some(function(k){ return !kind || k.kind === kind; }); }
+function runTasks(dt){
+  for (var r in S.q){
+    var q = S.q[r]; if (!q.length) continue;
+    var k = q[0];
+    if (!k.started){ k.started = true; if (k.start && k.start() === false){ q.shift(); continue; } }
+    k.left -= dt;
+    if (k.left <= 1e-6){ q.shift(); k.done(); }
+  }
+}
+
+function startCPR(){
+  if (S.cpr) return;
+  if (S.t > 0) S.pauses.push({t:S.t, d:S.handsOff, why:S.pauseWhy});
+  S.cpr = true; S.handsOff = 0;
+  if (S.firstCprT == null) S.firstCprT = S.t;
+  if (S.awaitShock){ S.awaitShock.resume = S.t - S.awaitShock.t; S.awaitShock = null; }
+  S.q.defib = S.q.defib.filter(function(k){ return k.kind !== 'check' || !k.started; });
+}
+function stopCPR(why){ if (!S.cpr) return; S.cpr = false; S.handsOff = 0; S.pauseWhy = why; }
+function closeCycle(min){
+  if (S.cycleT > min) S.cycles.push({t:S.t, d:S.cycleT, pre:S.shocks.length === 0, roscSign:S.capno && S.etco2 >= 30});
+  S.cycleT = 0; S.cycleFlag = false;
+}
+
+/* ---------------- time ---------------- */
+function tick(dt){
+  if (S.phase !== 'arrest') return;
+  S.t += dt;
+  if (S.cpr){ S.cprOn += dt; S.cycleT += dt; }
+  else { S.handsOff += dt; if (S.pads && S.handsOff >= 3) S.lastLookT = S.t; }
+  runTasks(dt);
+  if (S.phase !== 'arrest') return;
+  // capnography
+  if (S.capno){
+    var target = S.latent ? 38 : (S.cpr ? 16 : 4);
+    S.etco2 += (target - S.etco2) * (1 - Math.exp(-dt / 7));
+  }
+  if (S.cpr && S.cycleT >= 120 && !S.cycleFlag){
+    S.cycleFlag = true;
+    say('Timekeeper', 'Two minutes of CPR.');
+    decision('2 minutes of CPR are done.');
+  }
+  if (CFG.mode === 'coach' && S.lastEpiT != null && !S.epiDueFlag && S.t - S.lastEpiT >= 180){
+    S.epiDueFlag = true;
+    decision('It is 3 minutes since the last epinephrine.');
+  }
+  if (S.t >= 20 * 60){
+    S.rhythm = 'asystole'; S.cpr = false;
+    say('Team', 'Twenty minutes with no return of circulation. The rhythm is now asystole.');
+    S.outcome = 'No ROSC after 20 minutes'; S.phase = 'ended'; S.running = false; showDebrief();
+  }
+}
+function advance(sec){
+  while (sec > 1e-9){
+    if (!S || !S.running || S.phase !== 'arrest') break;
+    var d = Math.min(0.1, sec); tick(d); sec -= d;
+  }
+}
+
+/* ---------------- orders ---------------- */
+var A = {};
+A.cpr = function(){
+  if (S.phase !== 'arrest') return;
+  if (!S.cpr){
+    order('Start chest compressions');
+    var afterShock = S.awaitShock, wait = afterShock ? S.t - afterShock.t : (S.firstCprT == null ? S.t : S.handsOff);
+    var first = S.firstCprT == null;
+    startCPR();
+    say('Compressor', 'Compressions on, 110 per minute.');
+    if (first) fb(wait <= 15 ? 'good' : 'warn', wait <= 15 ? 'CPR started at once.' : 'CPR started after ' + Math.round(wait) + ' seconds. Start it at once.', WHY.cpr);
+    else if (afterShock) fb(wait <= 10 ? 'good' : 'warn', 'CPR resumed ' + Math.round(wait) + ' seconds after the shock.' + (wait <= 10 ? '' : ' Aim to resume immediately.'), WHY.resume);
+    else fb(wait <= 10 ? 'good' : 'warn', 'CPR resumed after a ' + Math.round(wait) + '-second pause.', WHY.ccf);
+  } else {
+    order('Pause compressions');
+    stopCPR('manual');
+    say('Compressor', 'Compressions paused.');
+    fb('warn', 'Compressions are paused. Keep any pause under 10 seconds.', WHY.ccf);
+  }
+};
+A.pads = function(){
+  if (S.phase !== 'arrest' || S.pads || hasTask('defib','pads')) return;
+  order('Attach defibrillator pads and monitor');
+  fb('good', 'Pads are going on' + (S.cpr ? ' while CPR continues.' : '. Make sure someone is doing compressions.'), WHY.pads);
+  addTask('defib','pads','Attaching pads',10,function(){
+    S.pads = true; S.padsT = S.t;
+    say('Defib', 'Pads are on. ' + kit().defib + ' defibrillator is ready.');
+    decision('The defibrillator is attached.');
+  });
+};
+A.check = function(){
+  if (S.phase !== 'arrest' || hasTask('defib','check')) return;
+  order('Stop compressions, rhythm and pulse check');
+  if (!S.pads && !hasTask('defib','pads')){
+    say('Defib', 'The monitor is not attached. We cannot see a rhythm.');
+    fb('bad', 'Attach the pads first.', WHY.pads); return;
+  }
+  var early = S.shocks.length > 0 && S.cycleT < 100 && !(S.capno && S.etco2 >= 30);
+  if (early) fb('warn', 'This check is early: only ' + fmt(S.cycleT) + ' of CPR since the last shock.', WHY.twomin + ' An earlier check is reasonable only if there are signs of ROSC, such as a sudden rise in ETCO₂.');
+  else fb('good', 'Rhythm check. Keep the pause under 10 seconds.', WHY.twomin);
+  addTask('defib','check','Rhythm check',5,function(){
+    S.lastLookT = S.t; closeCycle(5);
+    S.checks.push({t:S.t, rhythm:S.rhythm});
+    if (S.latent){
+      S.phase = 'rosc'; S.running = false; S.roscT = S.t; S.cpr = false; S.outcome = 'ROSC at ' + fmt(S.t);
+      say('Team', 'Organised rhythm on the monitor, and I feel a strong carotid pulse. BP 92/58.');
+      log('Return of spontaneous circulation (ROSC)', 'you');
+      S.fb = null; S.decision = null; ui.card = true;
+    } else {
+      S.needShock = true;
+      say('Team', 'Compressions paused. No pulse. Rhythm is on the monitor.');
+      if (S.rhythm === 'VF') fb('info', 'The monitor shows ventricular fibrillation: a chaotic line with no QRS complexes. This is a shockable rhythm.', WHY.shock1);
+      else fb('info', 'The monitor shows a fast, regular, wide-complex rhythm with no pulse: pulseless VT. Treat it like VF with an unsynchronized shock.', WHY.shock1);
+      decision('Rhythm check done. No pulse.');
+    }
+  }, function(){ stopCPR('check'); });
+};
+A.shock = function(E){
+  if (S.phase !== 'arrest' || hasTask('defib','shock')) return;
+  order('Charge to ' + E + ' J and shock');
+  if (!S.pads && !hasTask('defib','pads')){ say('Defib', 'The pads are not on the patient.'); fb('bad', 'Attach the pads first.', WHY.pads); return; }
+  S.lastE = E;
+  var k = kit(), okE = k.okE.indexOf(E) >= 0, last = S.shocks[S.shocks.length - 1];
+  var blind = S.lastLookT == null || S.t - S.lastLookT > 30;
+  var stacked = last && S.t - last.t < 100;
+  var whyE = CFG.kit === 'ideal' ? WHY.eBi : WHY.eMono;
+  if (blind) err('blind', 'Shock ordered without looking at the rhythm first', WHY.blind);
+  if (stacked) err('stacked', 'Shock given only ' + Math.round(S.t - last.t) + ' s after the previous shock', WHY.stacked);
+  if (!okE) fb('bad', E + ' J is too low for this ' + k.defib.toLowerCase() + ' defibrillator.', whyE);
+  else if (blind) fb('warn', 'You ordered a shock without checking the rhythm.', WHY.blind);
+  else if (stacked) fb('warn', 'This shock comes too soon after the last one.', WHY.stacked);
+  else fb('good', 'Charging to ' + E + ' J.' + (E !== k.bestE ? ' This is inside the 120–200 J range; when the maker’s dose is unknown, the maximum is preferred.' : '') + ' Compressions can continue while it charges. Resume CPR right after the shock.', whyE);
+  addTask('defib','shock','Charging ' + E + ' J',4,function(){ deliver(E, okE); });
+};
+function deliver(E, okE){
+  var n = S.shocks.length + 1;
+  closeCycle(30); // compressions given only while charging are not a new cycle
+  var sh = {t:S.t, e:E, n:n, rhythm:S.rhythm, okE:okE, resume:null};
+  S.shocks.push(sh);
+  stopCPR('shock'); S.pauseWhy = 'shock';
+  S.awaitShock = sh; S.needShock = false; S.flash = performance.now();
+  if (S.rhythm === 'sinus'){
+    err('organised', 'Shock ' + n + ' was given to an organised rhythm', WHY.organised);
+    S.rhythm = 'VF'; S.latent = false; S.easy = true;
+    say('Defib', 'Shock delivered at ' + E + ' J. The rhythm has changed to VF.');
+    fb('bad', 'That rhythm was organised. The shock has put the patient back into VF.', WHY.organised);
+  } else {
+    var epi = countDrug('epi'), anti = antiCount();
+    var convert = okE && ccf() >= 0.4 && (S.easy || (n >= 3 && epi >= 1 && anti >= 1) || (n >= 6 && epi >= 1) || n >= 8);
+    if (convert){ S.rhythm = 'sinus'; S.latent = true; }
+    say('Defib', 'Clear! Shock ' + n + ' delivered at ' + E + ' J.');
+  }
+  decision('Shock ' + n + ' has been delivered.');
+}
+A.sync = function(E){
+  if (S.phase !== 'arrest') return;
+  order('Synchronized cardioversion at ' + E + ' J');
+  err('sync', 'Synchronized cardioversion ordered in a pulseless patient', WHY.sync);
+  say('Defib', 'Sync is on, but the machine is not firing. No shock delivered.');
+  fb('bad', 'Sync mode is wrong for a pulseless patient.', WHY.sync);
+};
+A.pace = function(){
+  if (S.phase !== 'arrest') return;
+  order('Start transcutaneous pacing');
+  err('pace', 'Pacing ordered during VF/pVT arrest', WHY.pace);
+  say('Defib', 'Pacing will not capture in this rhythm.');
+  fb('bad', 'Pacing does not treat VF or pulseless VT.', WHY.pace);
+};
+A.access = function(kind){
+  if (S.phase !== 'arrest') return;
+  order(kind === 'iv' ? 'Get peripheral IV access' : 'Get intraosseous (IO) access');
+  if (S.access){ say('Nurse', 'We already have ' + S.access.toUpperCase() + ' access.'); fb('info', 'Access is already in place.'); return; }
+  if (hasTask('meds','access')){ say('Nurse', 'I am already working on access.'); return; }
+  if (kind === 'iv'){
+    if (S.ivFailed){ S.ivRetry = true; fb('warn', 'IV has already failed. IO is the faster next step.', WHY.access); }
+    else fb('good', 'IV first is the right choice. CPR continues while the nurse works.', WHY.access);
+    S.ivTried = true;
+    addTask('meds','access','Placing IV',40,function(){
+      if (S.ivFails){
+        S.ivFailed = true;
+        say('Nurse', 'IV failed after two attempts. The veins are collapsed.');
+        decision('IV access has failed.');
+      } else {
+        S.access = 'iv'; S.accessT = S.t;
+        say('Nurse', 'IV is in, right antecubital, flushing well.');
+        decision('IV access is ready.');
+      }
+    });
+  } else {
+    if (!S.ivTried){ S.ioFirst = true; fb('warn', 'IO works, but the 2025 guideline says to try IV first.', WHY.access); }
+    else fb('good', 'IO is the right next step after a failed IV.', WHY.access);
+    addTask('meds','access','Placing IO',20,function(){
+      S.access = 'io'; S.accessT = S.t;
+      say('Nurse', 'IO needle is in the proximal tibia, flushing well.');
+      decision('IO access is ready.');
+    });
+  }
+};
+A.drug = function(k, dose){
+  if (S.phase !== 'arrest') return;
+  var d = DRUGS[k], label = d.doses.filter(function(x){ return x[0] === dose; })[0][1];
+  order('Give ' + d.short.toLowerCase() + ' ' + label);
+  if (!S.access){
+    S.noAccessOrders++;
+    say('Nurse', hasTask('meds','access') ? 'I do not have access yet. I cannot give it.' : 'We have no IV or IO access.');
+    fb('bad', 'There is no route for the drug yet.', WHY.access); return;
+  }
+  var n = S.shocks.length, rec = {k:k, dose:dose, label:label, t:S.t, shocks:n, ok:true, timing:'ok'};
+  var j = judgeDrug(k, dose, n, rec);
+  fb(j[0], j[1], j[2]);
+  if (k === 'epi'){ S.lastEpiT = S.t; S.epiDueFlag = false; }
+  S.drugs.push(rec);
+  addTask('meds','drug','Giving ' + d.short.toLowerCase(),10,function(){
+    say('Nurse', d.short + ' ' + label + ' given ' + S.access.toUpperCase() + ', flushed with 20 mL.');
+  });
+};
+function judgeDrug(k, dose, n, rec){
+  if (k === 'epi'){
+    if (dose !== '1'){ rec.ok = false; return ['bad', 'Wrong dose. The arrest dose is 1 mg.', WHY.epi]; }
+    if (S.lastEpiT != null && S.t - S.lastEpiT < 175){ rec.timing = 'soon'; return ['bad', 'Too soon: only ' + fmt(S.t - S.lastEpiT) + ' since the last dose.', WHY.epi]; }
+    if (countDrug('epi') > 0) return ['good', 'Repeat epinephrine, ' + fmt(S.t - S.lastEpiT) + ' after the last dose.', WHY.epi];
+    if (n === 0){ rec.timing = 'early0'; return ['bad', 'No shock has been given yet. Shock first.', WHY.epi]; }
+    if (n === 1){ rec.timing = 'early1'; return ['warn', 'A little early: only 1 shock so far.', WHY.epi]; }
+    return ['good', 'Epinephrine 1 mg after ' + n + ' shocks.', WHY.epi];
+  }
+  if (k === 'amio' || k === 'lido'){
+    var prev = countDrug(k), other = countDrug(k === 'amio' ? 'lido' : 'amio');
+    var okDose = k === 'amio' ? (prev === 0 ? dose === '300' : dose === '150') : (prev === 0 ? (dose === '70' || dose === '100') : dose === '35');
+    if (prev >= 2){ rec.ok = false; return ['bad', 'Two doses have already been given.', WHY.anti]; }
+    if (!okDose){ rec.ok = false; return ['bad', 'Wrong dose for the ' + (prev === 0 ? 'first' : 'second') + ' dose.', WHY.anti]; }
+    if (other > 0){ err('both', 'Both amiodarone and lidocaine were given', WHY.both); return ['warn', 'You have now given both antiarrhythmic drugs.', WHY.both]; }
+    if (n < 2){ rec.timing = 'early0'; return ['bad', 'Too early. This drug is for VF/pVT that has not responded to shocks.', WHY.anti]; }
+    if (n === 2){ rec.timing = 'early1'; return ['warn', 'A little early: the algorithm gives it after the 3rd shock.', WHY.anti]; }
+    return ['good', DRUGS[k].short + ' ' + (prev === 0 ? 'first' : 'second') + ' dose after ' + n + ' shocks.', WHY.anti];
+  }
+  rec.ok = false;
+  var names = {atro:'Atropine is not used in this arrest.', aden:'Adenosine is not used in a pulseless arrest.', mag:'Magnesium is not a routine arrest drug.'};
+  err(k, DRUGS[k].short + ' was given', WHY[k]);
+  return ['bad', names[k], WHY[k]];
+}
+A.airway = function(kind){
+  if (S.phase !== 'arrest') return;
+  var names = {bvm:'Bag-mask ventilation with oxygen', sga:'Insert a supraglottic airway', ett:'Intubate (endotracheal tube)', capno:'Attach waveform capnography'};
+  order(names[kind]);
+  if (kind === 'bvm'){
+    if (S.airway || hasTask('airway','bvm')){ say('Airway', 'We are already ventilating.'); return; }
+    fb('good', 'Bag-mask ventilation with oxygen, 30:2.', WHY.airway);
+    addTask('airway','bvm','Setting up bag-mask',10,function(){ S.airway = 'bvm'; S.bvmT = S.t; say('Airway', 'Bag-mask with oral airway and 15 L/min oxygen. Chest is rising. Ratio 30 to 2.'); });
+  } else if (kind === 'capno'){
+    if (S.capno || hasTask('airway','capno')){ say('Airway', 'Capnography is already on.'); return; }
+    if (!S.airway && !hasTask('airway')){ say('Airway', 'I need a bag-mask or airway first. The sensor fits on that circuit.'); fb('info', 'Start ventilation first, then attach capnography.'); return; }
+    fb('good', 'Capnography is being attached.', WHY.capno);
+    addTask('airway','capno','Attaching capnography',6,function(){ S.capno = true; S.capnoT = S.t; S.etco2 = S.cpr ? 10 : 4; say('Airway', 'Waveform capnography is on.'); });
+  } else {
+    if (S.airway === 'sga' || S.airway === 'ett' || hasTask('airway','adv')){ say('Airway', 'An advanced airway is already in or in progress.'); return; }
+    if (S.shocks.length === 0){ err('airwayEarly', 'Advanced airway ordered before the first shock', WHY.airwayEarly); fb('warn', 'This is early. The first shock has not been given.', WHY.airwayEarly); }
+    else fb('good', 'Advanced airway. Compressions continue during placement.' + (S.capno ? '' : ' Confirm it with waveform capnography.'), WHY.airway);
+    addTask('airway','adv', kind === 'sga' ? 'Placing SGA' : 'Intubating', kind === 'sga' ? 20 : 40, function(){
+      S.airway = kind; S.advT = S.t; if (S.bvmT == null) S.bvmT = S.t;
+      say('Airway', (kind === 'sga' ? 'Supraglottic airway is in.' : 'Tube is through the cords, 22 cm at the lips.') + ' Ventilating 10 per minute.' + (S.capno ? ' Good capnography trace.' : ''));
+    });
+  }
+};
+A.htView = function(key){ if (S.phase !== 'arrest') return; if (!S.hts.viewed[key]){ S.hts.viewed[key] = true; } };
+A.htMark = function(key){
+  if (S.phase !== 'arrest') return;
+  var row = HT.filter(function(h){ return h[0] === key; })[0];
+  order('Likely cause: ' + row[1]);
+  S.hts.marked = key;
+  if (key === 'mi') fb('good', 'Yes. A coronary thrombosis (acute MI) is the most likely cause.', WHY.hts);
+  else fb('warn', 'That cause does not fit this patient well. Look at the other Hs and Ts.', WHY.hts);
+};
+A.end = function(){ if (!S) return; if (S.phase === 'arrest'){ S.outcome = 'Case ended at ' + fmt(S.t) + ' without ROSC'; log('Case ended by the team leader', 'you'); } S.phase = 'ended'; S.running = false; showDebrief(); };
+
+/* ---------------- coach: what should happen next ---------------- */
+function nextStep(){
+  var n = S.shocks.length, k = kit();
+  if (!S.cpr && !S.pads && !hasTask('defib','pads') && S.firstCprT == null) return ['Start chest compressions.', WHY.cpr];
+  if (hasTask('defib','check')) return ['Wait for the rhythm check (5 seconds).', WHY.twomin];
+  if (S.needShock && !hasTask('defib','shock')) return ['Shock now at ' + k.bestE + ' J.', (CFG.kit === 'ideal' ? WHY.eBi : WHY.eMono)];
+  if (!S.cpr && !hasTask('defib','shock')) return ['Resume chest compressions now.', S.awaitShock ? WHY.resume : WHY.ccf];
+  if (!S.cpr && hasTask('defib','shock')) return ['The defibrillator is charging. You can run compressions while it charges, and resume CPR right after the shock.', WHY.resume];
+  if (!S.pads && !hasTask('defib','pads')) return ['Attach the defibrillator pads.', WHY.pads];
+  if (hasTask('defib','pads')) return ['Keep CPR going while the pads go on.', WHY.pads];
+  if (hasTask('defib','shock')) return ['Shock is coming. Be ready to resume CPR at once.', WHY.resume];
+  if (n === 0) return ['Do a rhythm check now. The defibrillator is ready, so do not wait 2 minutes for the first check.', WHY.shock1];
+  if (S.cycleT >= 120) return ['2 minutes are done: do a rhythm and pulse check.', WHY.twomin];
+  if (!S.airway && !hasTask('airway')) return ['Start bag-mask ventilation with oxygen.', WHY.airway];
+  if (!S.access && !hasTask('meds','access')) return [S.ivFailed ? 'IV failed: get IO access.' : 'Get IV access.', WHY.access];
+  if (S.access && n >= 2 && (S.lastEpiT == null || S.t - S.lastEpiT >= 180)) return [S.lastEpiT == null ? 'Give epinephrine 1 mg.' : 'Repeat epinephrine 1 mg (3 minutes have passed).', WHY.epi];
+  if (S.access && n >= 3 && antiCount() === 0) return [k.drugs.amio ? 'Give amiodarone 300 mg (or lidocaine 1–1.5 mg/kg).' : 'Give lidocaine 1–1.5 mg/kg (70–100 mg).', WHY.anti];
+  if (k.capno && !S.capno && S.airway && !hasTask('airway','capno')) return ['Attach waveform capnography.', WHY.capno];
+  if (S.hts.marked !== 'mi') return ['Use this CPR time to go through the Hs and Ts and find the likely cause.', WHY.hts];
+  return ['Continue CPR until the 2-minute mark, then check the rhythm.', WHY.twomin];
+}
+function criticalPending(){
+  if (S.needShock && !hasTask('defib','shock')) return ['A shockable rhythm is waiting for a shock.', WHY.shock1];
+  if (!S.cpr && !hasTask('defib','check') && !hasTask('defib','shock')) return ['Nobody is doing chest compressions.', WHY.ccf];
+  return null;
+}
+function cont(){
+  if (S.phase !== 'arrest') return;
+  var c = criticalPending();
+  if (c && !S.warned){ S.warned = true; fb('warn', 'Before you continue: ' + c[0], c[1]); return; }
+  S.warned = false; S.decision = null; S.hint = null; S.fb = null; S.running = true; ui.card = true;
+}
+
+/* ---------------- scoring ---------------- */
+function computeScore(){
+  var items = [], n = S.shocks.length, k = kit();
+  function add(title, max, pts, did, why){ pts = Math.max(0, Math.min(max, Math.round(pts))); items.push({title:title, max:max, pts:pts, did:did, why:why}); }
+  // 1 CPR start
+  var c = S.firstCprT;
+  add('Start CPR at once', 10, c == null ? 0 : c <= 15 ? 10 : c <= 30 ? 5 : 2, c == null ? 'CPR was never started.' : 'CPR started ' + Math.round(c) + ' s after the collapse.', WHY.cpr);
+  // 2 pads
+  var p = S.padsT;
+  add('Attach the defibrillator early', 5, p == null ? 0 : p <= 60 ? 5 : p <= 120 ? 3 : 1, p == null ? 'Pads were never attached.' : 'Pads were on at ' + fmt(p) + '.', WHY.pads);
+  // 3 first shock
+  var f = n ? S.shocks[0].t : null;
+  add('First shock without delay', 15, f == null ? 0 : f <= 120 ? 15 : f <= 180 ? 10 : f <= 240 ? 5 : 2, f == null ? 'No shock was given.' : 'First shock at ' + fmt(f) + '.', WHY.shock1);
+  // 4 energy
+  var badE = S.shocks.filter(function(s){ return !s.okE; });
+  add('Correct shock energy', 5, !n ? 0 : 5 * (n - badE.length) / n, !n ? 'No shock was given.' : 'Energies used: ' + S.shocks.map(function(s){ return s.e + ' J'; }).join(', ') + '.', CFG.kit === 'ideal' ? WHY.eBi : WHY.eMono);
+  // 5 resume after shock
+  var res = S.shocks.filter(function(s){ return s.resume != null; }).map(function(s){ return s.resume; });
+  var never = S.shocks.filter(function(s){ return s.resume == null; }).length;
+  var worst = res.length ? Math.max.apply(null, res) : null;
+  add('Resume CPR right after each shock', 10, !n ? 0 : (never ? 0 : worst <= 10 ? 10 : worst <= 20 ? 5 : 2),
+      !n ? 'No shock was given.' : (res.length ? 'Time from shock to compressions: ' + res.map(function(r){ return Math.round(r) + ' s'; }).join(', ') + '.' : '') + (never ? ' After ' + never + ' shock(s) CPR was not resumed.' : ''), WHY.resume);
+  // 6 CCF
+  var cf = ccf();
+  add('Few and short pauses in compressions', 10, cf >= 0.8 ? 10 : cf >= 0.6 ? 7 : cf >= 0.4 ? 3 : 0, 'Chest compression fraction: ' + Math.round(cf * 100) + '% of the arrest time.', WHY.ccf);
+  // 7 two-minute cycles
+  var cyc = S.cycles.filter(function(x){ return !x.pre; });
+  var goodC = cyc.filter(function(x){ return (x.d >= 100 && x.d <= 150) || (x.roscSign && x.d < 150); });
+  add('2-minute CPR cycles', 5, cyc.length ? 5 * goodC.length / cyc.length : 0, cyc.length ? 'CPR cycles between rhythm checks: ' + cyc.map(function(x){ return fmt(x.d); }).join(', ') + '.' : 'No full CPR cycle was completed after a shock.', WHY.twomin);
+  // 8 access
+  var a = S.accessT, aPts = a == null ? 0 : a <= 300 ? 5 : 3, aDid = a == null ? 'No IV or IO access was obtained.' : S.access.toUpperCase() + ' access at ' + fmt(a) + '.';
+  if (S.ioFirst){ aPts = Math.min(aPts, 3); aDid += ' IO was used without trying IV first.'; }
+  if (S.ivRetry){ aPts = Math.min(aPts, 3); aDid += ' IV was tried again after it had already failed.'; }
+  if (S.ivFailed && S.access === 'io' && !S.ivRetry) aDid += ' IV failed, then IO: the right order.';
+  add('IV first, IO if IV fails', 5, aPts, aDid, WHY.access);
+  // 9 epinephrine
+  var epi = S.drugs.filter(function(d){ return d.k === 'epi'; }), ePts = 0, eDid;
+  if (!epi.length){ eDid = n >= 2 ? 'Epinephrine was never given.' : 'Epinephrine was not given (fewer than 2 shocks).'; }
+  else {
+    var e1 = epi[0];
+    ePts += e1.shocks >= 4 ? 3 : e1.shocks >= 2 ? 6 : e1.shocks === 1 ? 4 : 1;
+    var allDose = epi.every(function(d){ return d.dose === '1'; }); if (allDose) ePts += 4;
+    var soon = false, late = false;
+    for (var i = 0; i < epi.length; i++){
+      var nxt = i + 1 < epi.length ? epi[i + 1].t : S.t;
+      if (i + 1 < epi.length && nxt - epi[i].t < 175) soon = true;
+      if (nxt - epi[i].t > 330) late = true;
+    }
+    if (!soon && !late) ePts += 5; else if (!soon || !late) ePts += 2;
+    eDid = 'Given at ' + epi.map(function(d){ return fmt(d.t) + ' (' + d.label + ', after ' + d.shocks + ' shock' + (d.shocks === 1 ? '' : 's') + ')'; }).join(', ') + '.'
+         + (soon ? ' One repeat dose came sooner than 3 minutes.' : '') + (late ? ' A repeat dose was more than 5 minutes late or missed.' : '');
+  }
+  add('Epinephrine: right dose, right time', 15, ePts, eDid, WHY.epi);
+  // 10 antiarrhythmic
+  var anti = S.drugs.filter(function(d){ return d.k === 'amio' || d.k === 'lido'; }), xPts = 0, xDid;
+  if (!anti.length) xDid = n >= 3 ? 'No antiarrhythmic drug was given although VF/pVT continued after 3 shocks.' : 'No antiarrhythmic drug was given.';
+  else {
+    var x1 = anti[0];
+    xPts = x1.shocks >= 3 ? 10 : x1.shocks === 2 ? 7 : 3;
+    if (anti.some(function(d){ return !d.ok; })) xPts = Math.min(xPts, 4);
+    xDid = anti.map(function(d){ return DRUGS[d.k].short + ' ' + d.label + ' at ' + fmt(d.t) + ' (after ' + d.shocks + ' shock' + (d.shocks === 1 ? '' : 's') + ')' + (d.ok ? '' : ', wrong dose'); }).join('; ') + '.';
+  }
+  add('Antiarrhythmic for shock-resistant VF/pVT', 10, xPts, xDid, WHY.anti);
+  // 11 airway
+  var b = S.bvmT, wPts = b == null ? 0 : (b <= 150 ? 3 : 2), wDid = b == null ? 'No ventilation or oxygen was started.' : 'Ventilation with oxygen from ' + fmt(b) + '.';
+  if (k.capno){ if (S.capno){ wPts += 2; wDid += ' Capnography on at ' + fmt(S.capnoT) + '.'; } else wDid += ' Waveform capnography was not used.'; }
+  else if (b != null) wPts += 2;
+  if (S.advT != null) wDid += ' Advanced airway at ' + fmt(S.advT) + '.';
+  add(k.capno ? 'Oxygen, ventilation and capnography' : 'Oxygen and ventilation', 5, wPts, wDid, WHY.airway + (k.capno ? ' ' + WHY.capno : ''));
+  // 12 Hs and Ts
+  var viewed = Object.keys(S.hts.viewed).length;
+  add('Find the reversible cause (Hs and Ts)', 5, S.hts.marked === 'mi' ? 5 : (viewed || S.hts.marked) ? 2 : 0,
+      S.hts.marked === 'mi' ? 'You named coronary thrombosis as the likely cause.' : S.hts.marked ? 'You named a cause that does not fit.' : viewed ? 'You looked at ' + viewed + ' of the 10 causes but did not name one.' : 'The Hs and Ts were not reviewed.', WHY.hts);
+
+  var raw = items.reduce(function(s, i){ return s + i.pts; }, 0);
+  var ded = Math.min(15, S.errors.length * 3);
+  return {items:items, raw:raw, ded:ded, total:Math.max(0, raw - ded), errors:S.errors.slice()};
+}
+
+/* ---------------- screens ---------------- */
+var ui = { card:true, last:{} };
+function show(id){ ['setup','simScreen','debrief'].forEach(function(x){ $('#' + x).hidden = x !== id; }); }
+function setT(id, txt){ if (ui.last[id] !== txt){ ui.last[id] = txt; $('#' + id).textContent = txt; } }
+
+function startCase(opts){
+  S = newState(opts); ui.last = {}; ui.card = true;
+  show('simScreen'); sizeCanvas();
+  $('#modeLabel').textContent = (CFG.mode === 'coach' ? 'Pause and explain' : 'Real-time') + ' · ' + kit().label;
+  $('#speedBtn').hidden = $('#pauseBtn').hidden = CFG.mode === 'coach';
+  $('#bPace').disabled = !kit().pacer;
+  $('#bPace').innerHTML = kit().pacer ? 'Pacing' : 'Pacing<small>no pacer</small>';
+  $('#vCOu').textContent = kit().capno ? 'mm Hg' : 'no capnograph';
+  openSheet('Your patient',
+    '<p>A 58-year-old man, 70 kg, came in with crushing chest pain for 30 minutes. His arrival ECG showed ST elevation in V1–V4.</p>' +
+    '<p>He has just collapsed in the resuscitation bay. He does not respond, he is not breathing, and there is no carotid pulse.</p>' +
+    '<p>You are the <b>team leader</b>. Your team of four is at the bedside with a ' + kit().defib.toLowerCase() + ' defibrillator. The monitor is not attached yet.</p>' +
+    '<p class="small muted">' + (CFG.mode === 'coach' ? 'The clock stops at each decision. Give your orders, read the feedback, then tap Continue.' : 'The clock runs in real time. Use the speed button if you want it faster.') + '</p>' +
+    '<button type="button" class="btn primary wide" data-a="begin">Begin</button>', true);
+  try { if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(function(){}); } catch (e) {}
+}
+function begin(){
+  closeSheet(); S.phase = 'arrest';
+  log('Patient collapses. No pulse.', '');
+  S.say = {who:'Nurse', text:'He has no pulse! What do you want us to do?'};
+  if (CFG.mode === 'coach') decision('Cardiac arrest. What is your first order?'); else S.running = true;
+}
+
+function openSheet(title, html, locked){
+  $('#sheetTitle').textContent = title; $('#sheetBody').innerHTML = '<div class="list">' + html + '</div>';
+  $('#sheetClose').hidden = !!locked; $('#overlay').dataset.locked = locked ? '1' : '';
+  $('#overlay').hidden = false;
+  if (S && CFG.mode === 'coach') S.running = false;
+}
+function closeSheet(){ $('#overlay').hidden = true; }
+function energySheet(kind){
+  var k = kit(), h = '<p class="small muted">' + k.defib + ' defibrillator' + (CFG.kit === 'ideal' ? '. The maker’s recommended dose is not known.' : '.') + '</p><div class="grid2">';
+  k.energies.forEach(function(e){ h += '<button type="button" class="btn ' + (kind === 'shock' ? 'shock' : '') + '" data-a="' + kind + '" data-v="' + e + '">' + e + ' J</button>'; });
+  openSheet(kind === 'shock' ? 'Defibrillate (unsynchronized shock)' : 'Synchronized cardioversion', h + '</div>');
+}
+function drugSheet(){
+  var k = kit(), h = '';
+  Object.keys(DRUGS).forEach(function(key){
+    var on = k.drugs[key];
+    h += '<button type="button" class="btn" data-a="drugPick" data-v="' + key + '"' + (on ? '' : ' disabled') + '>' + DRUGS[key].name + (on ? '' : '<small>not in this kit</small>') + '</button>';
+  });
+  openSheet('Drugs', '<p class="small muted">Patient weight 70 kg. ' + (S.access ? 'Route: ' + S.access.toUpperCase() + '.' : 'No IV or IO access yet.') + '</p>' + h);
+}
+function doseSheet(key){
+  var d = DRUGS[key], h = '<p class="small muted">Choose the dose to give now.</p><div class="grid2">';
+  d.doses.forEach(function(x){ h += '<button type="button" class="btn" data-a="drug" data-v="' + key + '|' + x[0] + '">' + x[1] + '</button>'; });
+  openSheet(d.name, h + '</div><button type="button" class="btn quiet" data-a="drugs">Back to drugs</button>');
+}
+function airwaySheet(){
+  var k = kit(), h = '<button type="button" class="btn" data-a="airway" data-v="bvm">Bag-mask + oral airway + oxygen<small>30 compressions : 2 breaths</small></button>';
+  h += '<button type="button" class="btn" data-a="airway" data-v="sga"' + (k.adv ? '' : ' disabled') + '>Supraglottic airway' + (k.adv ? '' : '<small>not in this kit</small>') + '</button>';
+  h += '<button type="button" class="btn" data-a="airway" data-v="ett"' + (k.adv ? '' : ' disabled') + '>Endotracheal tube' + (k.adv ? '' : '<small>not in this kit</small>') + '</button>';
+  h += '<button type="button" class="btn" data-a="airway" data-v="capno"' + (k.capno ? '' : ' disabled') + '>Waveform capnography' + (k.capno ? '' : '<small>not in this kit</small>') + '</button>';
+  openSheet('Airway and breathing', h);
+}
+function accessSheet(){
+  openSheet('Vascular access', '<button type="button" class="btn" data-a="access" data-v="iv">Peripheral IV</button><button type="button" class="btn" data-a="access" data-v="io">Intraosseous (IO)</button>');
+}
+function htSheet(openKey){
+  var h = '<p class="small muted">Tap a cause to hear what the team finds. Then name the most likely cause.</p>';
+  HT.forEach(function(r){
+    var marked = S.hts.marked === r[0];
+    h += '<button type="button" class="btn" data-a="ht" data-v="' + r[0] + '">' + r[1] + (marked ? '<small>named as the likely cause</small>' : '') + '</button>';
+    if (openKey === r[0]) h += '<div class="finding"><span>' + r[2] + '</span><button type="button" class="btn primary" data-a="htMark" data-v="' + r[0] + '">Name this as the likely cause</button></div>';
+  });
+  openSheet('Hs and Ts: reversible causes', h);
+}
+function logSheet(){
+  var h = '<div class="logrows">';
+  S.log.forEach(function(l){ h += '<div><time>' + fmt(l.t) + '</time><span class="' + l.cls + '">' + esc(l.text) + '</span></div>'; });
+  openSheet('Event log', h + '</div>');
+}
+function endSheet(){
+  openSheet('End the case?', '<p>The case will stop and you will see the debrief with your score.</p><button type="button" class="btn primary" data-a="end">End case and see debrief</button><button type="button" class="btn" data-a="close">Keep going</button>');
+}
+$('#sheetBody').addEventListener('click', function(ev){
+  var b = ev.target.closest('button[data-a]'); if (!b || b.disabled) return;
+  var a = b.dataset.a, v = b.dataset.v;
+  if (a === 'begin') return begin();
+  if (a === 'close') return closeSheet();
+  if (a === 'drugs') return drugSheet();
+  if (a === 'drugPick') return doseSheet(v);
+  if (a === 'ht'){ A.htView(v); return htSheet(v); }
+  closeSheet();
+  if (a === 'shock') A.shock(+v);
+  else if (a === 'sync') A.sync(+v);
+  else if (a === 'drug'){ var p = v.split('|'); A.drug(p[0], p[1]); }
+  else if (a === 'airway') A.airway(v);
+  else if (a === 'access') A.access(v);
+  else if (a === 'htMark') A.htMark(v);
+  else if (a === 'end') A.end();
+});
+$('#sheetClose').addEventListener('click', closeSheet);
+$('#overlay').addEventListener('click', function(ev){ if (ev.target === this && !this.dataset.locked) closeSheet(); });
+
+$('#bCPR').addEventListener('click', function(){ A.cpr(); });
+$('#bPads').addEventListener('click', function(){ A.pads(); });
+$('#bCheck').addEventListener('click', function(){ A.check(); });
+$('#bShock').addEventListener('click', function(){ if (S.phase === 'arrest') energySheet('shock'); });
+$('#bSync').addEventListener('click', function(){ if (S.phase === 'arrest') energySheet('sync'); });
+$('#bPace').addEventListener('click', function(){ A.pace(); });
+$('#bDrugs').addEventListener('click', function(){ if (S.phase === 'arrest') drugSheet(); });
+$('#bAirway').addEventListener('click', function(){ if (S.phase === 'arrest') airwaySheet(); });
+$('#bAccess').addEventListener('click', function(){ if (S.phase === 'arrest') accessSheet(); });
+$('#bHT').addEventListener('click', function(){ if (S.phase === 'arrest') htSheet(); });
+$('#bLog').addEventListener('click', logSheet);
+$('#endBtn').addEventListener('click', function(){ if (S.phase === 'rosc') A.end(); else endSheet(); });
+$('#speedBtn').addEventListener('click', function(){ S.speed = S.speed === 1 ? 2 : S.speed === 2 ? 4 : 1; });
+$('#pauseBtn').addEventListener('click', function(){ if (S.phase === 'arrest'){ S.running = !S.running; ui.card = true; } });
+$('#card').addEventListener('click', function(ev){
+  var b = ev.target.closest('button[data-a]'); if (!b) return;
+  if (b.dataset.a === 'cont') cont();
+  else if (b.dataset.a === 'hold'){ S.running = false; ui.card = true; }
+  else if (b.dataset.a === 'hint'){ var h = nextStep(); S.hint = h; ui.card = true; }
+  else if (b.dataset.a === 'debrief') A.end();
+});
+function seg(id, key){
+  $(id).addEventListener('click', function(ev){
+    var b = ev.target.closest('button'); if (!b) return;
+    CFG[key] = b.dataset.v;
+    Array.prototype.forEach.call(this.children, function(c){ c.setAttribute('aria-pressed', c === b ? 'true' : 'false'); });
+  });
+}
+seg('#segMode','mode'); seg('#segKit','kit');
+$('#startBtn').addEventListener('click', function(){ startCase(); });
+
+/* ---------------- drawing the sim screen ---------------- */
+function renderCard(){
+  ui.card = false;
+  var h = '';
+  if (S.phase === 'rosc'){
+    h += '<div class="body"><div class="note good"><b>ROSC at ' + fmt(S.roscT) + '.</b> The pulse is back.<span class="why">The case ends here. Next would be post-ROSC care: airway and oxygen (SpO₂ 90–98%), blood pressure (MAP at least 65 mm Hg), a 12-lead ECG and urgent coronary angiography for this STEMI, and temperature control.</span></div></div>';
+    h += '<div class="row"><button type="button" class="btn primary" data-a="debrief">See debrief and score</button></div>';
+    $('#card').innerHTML = h; return;
+  }
+  h += '<div class="body">';
+  if (S.say) h += '<p class="say"><b>' + esc(S.say.who) + ':</b> ' + esc(S.say.text) + '</p>';
+  if (CFG.mode === 'coach'){
+    if (S.fb) h += '<div class="note ' + S.fb.level + '"><b>' + esc(S.fb.msg) + '</b>' + (S.fb.why ? '<span class="why">' + esc(S.fb.why) + '</span>' : '') + '</div>';
+    if (S.hint) h += '<div class="note info"><b>Hint: ' + esc(S.hint[0]) + '</b><span class="why">' + esc(S.hint[1]) + '</span></div>';
+    if (!S.running) h += '<p class="small muted">' + (S.decision ? esc(S.decision) + ' ' : '') + 'Clock stopped. Give your orders, then tap Continue.</p>';
+    h += '</div><div class="row"><button type="button" class="btn" data-a="hint">Hint</button>' +
+         (S.running ? '<button type="button" class="btn" data-a="hold">Running… tap to stop</button>' : '<button type="button" class="btn primary" data-a="cont">' + (S.warned ? 'Continue anyway' : 'Continue') + '</button>') + '</div>';
+  } else if (!S.running && S.phase === 'arrest'){
+    h += '<div class="note info"><b>Paused.</b> Tap Resume to restart the clock.</div></div>';
+  } else h += '</div>';
+  $('#card').innerHTML = h;
+}
+function taskText(role){ var q = S.q[role]; return q.length ? q[0].label + ' ' + Math.max(1, Math.ceil(q[0].left)) + 's' : null; }
+function render(){
+  if (!S || S.phase === 'ended') return;
+  setT('clock', fmt(S.t));
+  var arrest = S.phase !== 'rosc';
+  setT('vHR', arrest ? '--' : '104');
+  setT('vBP', arrest ? '--/--' : '92/58');
+  setT('vSp', arrest ? '--' : '94');
+  setT('vCO', S.capno ? String(Math.round(arrest ? S.etco2 : 40)) : '--');
+  var bar = $('#cprbar');
+  if (S.phase === 'rosc'){ bar.className = 'cprbar'; setT('cprTxt', 'ROSC'); $('#cprFill').style.width = '0%'; }
+  else if (S.cpr){ bar.className = 'cprbar' + (S.cycleT >= 120 ? ' over' : ''); setT('cprTxt', 'CPR ' + fmt(S.cycleT)); $('#cprFill').style.width = Math.min(100, S.cycleT / 1.2) + '%'; }
+  else { bar.className = 'cprbar off'; setT('cprTxt', 'NO CPR ' + fmt(S.firstCprT == null ? S.t : S.handsOff)); $('#cprFill').style.width = '0%'; }
+  var cb = $('#bCPR'), cl = S.phase === 'rosc' ? 'rosc' : S.cpr ? 'on' : 'off';
+  if (ui.last.cb !== cl){ ui.last.cb = cl; cb.className = 'btn cpr ' + (S.cpr ? 'on' : 'primary'); cb.innerHTML = cl === 'rosc' ? 'Pulse present · CPR stopped' : S.cpr ? '<span class="dot"></span>CPR running · tap to pause' : (S.firstCprT == null ? 'Start CPR' : 'Resume CPR'); }
+  var pd = S.pads ? 'Pads on' : 'Attach pads';
+  if (ui.last.pd !== pd){ ui.last.pd = pd; $('#bPads').textContent = pd; $('#bPads').disabled = S.pads; }
+  var sb = S.lastE ? 'Shock<small>last ' + S.lastE + ' J</small>' : 'Shock';
+  if (ui.last.sb !== sb){ ui.last.sb = sb; $('#bShock').innerHTML = sb; }
+  var lock = S.phase === 'rosc' ? 'y' : 'n';
+  if (ui.last.lock !== lock){ ui.last.lock = lock; $('#pad').className = 'pad' + (lock === 'y' ? ' locked' : ''); }
+  function st(id, role, idle){
+    var t = taskText(role), txt = t || idle, key = id + txt;
+    if (ui.last[id] !== key){ ui.last[id] = key; var el = $('#' + id); el.className = t ? 'busy' : ''; el.lastElementChild.textContent = txt; }
+  }
+  st('stDefib','defib', S.pads ? kit().defib + ', pads on' : 'Pads off');
+  st('stAccess','meds', S.access ? S.access.toUpperCase() + ' in place' : (S.ivFailed ? 'IV failed' : 'None'));
+  st('stAirway','airway', (S.airway ? {bvm:'Bag-mask + O₂', sga:'SGA', ett:'ET tube'}[S.airway] : 'None') + (S.capno ? ' · capno' : ''));
+  if (CFG.mode === 'real'){ setT('speedBtn', S.speed + '×'); setT('pauseBtn', S.running ? 'Pause' : 'Resume'); }
+  var runKey = S.running ? 'r' : 'p';
+  if (ui.last.run !== runKey){ ui.last.run = runKey; ui.card = true; }
+  var ll = S.log.length ? fmt(S.log[S.log.length - 1].t) + '  ' + S.log[S.log.length - 1].text : 'Event log';
+  setT('logLast', ll);
+  if (ui.card) renderCard();
+}
+
+/* ---------------- ECG ---------------- */
+var cv = $('#ecg'), cx = cv.getContext('2d'), ecg = { x:0, t:0, y:null, w:0, h:0, col:{} };
+function sizeCanvas(){
+  var r = cv.getBoundingClientRect(), d = window.devicePixelRatio || 1;
+  if (!r.width) return;
+  cv.width = Math.round(r.width * d); cv.height = Math.round(r.height * d);
+  cx.setTransform(d, 0, 0, d, 0, 0);
+  ecg.w = r.width; ecg.h = r.height; ecg.x = 0; ecg.y = null;
+  var cs = getComputedStyle(document.documentElement);
+  ecg.col = { ecg:cs.getPropertyValue('--ecg').trim(), bg:cs.getPropertyValue('--mon-bg').trim(), dim:cs.getPropertyValue('--mon-ink').trim() };
+  cx.fillStyle = ecg.col.bg; cx.fillRect(0, 0, ecg.w, ecg.h);
+}
+window.addEventListener('resize', sizeCanvas);
+function g(p, c, w, a){ return a * Math.exp(-((p - c) * (p - c)) / (2 * w * w)); }
+var wave = {
+  VF:function(t){ var a = 0.55 + 0.35 * Math.sin(0.9 * t + 1.5 * Math.sin(0.37 * t));
+    return a * (0.62 * Math.sin(27.0 * t + 2.2 * Math.sin(2.7 * t)) + 0.3 * Math.sin(42.1 * t + 1.1) + 0.22 * Math.sin(16.3 * t + 0.5 * Math.sin(1.3 * t))); },
+  pVT:function(t){ var p = (t * 3.1) % 1; return 0.8 * Math.sin(2 * Math.PI * p) + 0.3 * Math.sin(4 * Math.PI * p + 0.9); },
+  sinus:function(t){ var p = (t * 104 / 60) % 1; return g(p,0.17,0.025,0.12) - g(p,0.268,0.010,0.10) + g(p,0.30,0.014,0.95) - g(p,0.335,0.012,0.20) + g(p,0.56,0.05,0.24); },
+  asystole:function(t){ return 0.03 * Math.sin(0.8 * t); },
+  cpr:function(t, under){ var p = (t * 110 / 60) % 1; return 0.72 * Math.sin(2 * Math.PI * p) + 0.24 * Math.sin(4 * Math.PI * p + 1.2) + 0.12 * under; },
+  none:function(){ return 0; }
+};
+function drawECG(dtReal){
+  if (!ecg.w) return;
+  var pps = ecg.w / 6, steps = Math.max(1, Math.round(dtReal * pps));
+  var kind = !S.pads ? 'none' : S.rhythm;
+  cx.lineWidth = 1.6; cx.lineJoin = 'round'; cx.strokeStyle = ecg.col.ecg;
+  var flash = S.flash && performance.now() - S.flash < 220;
+  for (var i = 0; i < steps; i++){
+    var x0 = ecg.x, y = ecg.y;
+    cx.fillStyle = ecg.col.bg; cx.fillRect(x0 + 1, 0, 12, ecg.h);
+    cx.beginPath(); if (y != null) cx.moveTo(x0, y);
+    for (var j = 1; j <= 4; j++){
+      ecg.t += 1 / (pps * 4);
+      var v = wave[kind](ecg.t);
+      if (S.pads && S.cpr) v = wave.cpr(ecg.t, v);
+      if (flash) v = 1.25;
+      var ny = ecg.h / 2 - v * ecg.h * 0.38;
+      if (y == null) cx.moveTo(x0 + j / 4, ny); else cx.lineTo(x0 + j / 4, ny);
+      y = ny;
+    }
+    cx.stroke();
+    ecg.y = y; ecg.x = x0 + 1;
+    if (ecg.x >= ecg.w){ ecg.x = 0; ecg.y = null; cx.fillStyle = ecg.col.bg; cx.fillRect(0, 0, 12, ecg.h); }
+  }
+  if (!S.pads){ cx.fillStyle = ecg.col.bg; cx.fillRect(0, 0, ecg.w, 18); cx.fillStyle = ecg.col.dim; cx.font = '600 12px ' + getComputedStyle(document.body).fontFamily; cx.fillText('NO SIGNAL · pads not attached', 4, 13); ecg.label = true; }
+  else if (ecg.label){ ecg.label = false; cx.fillStyle = ecg.col.bg; cx.fillRect(0, 0, ecg.w, 18); }
+}
+
+/* ---------------- debrief ---------------- */
+function showDebrief(){
+  closeSheet();
+  var r = computeScore(), h = '';
+  var tiles = [
+    [S.shocks.length ? fmt(S.shocks[0].t) : 'none', 'time to first shock'],
+    [Math.round(ccf() * 100) + '%', 'chest compression fraction'],
+    [String(S.shocks.length), 'shocks given'],
+    [fmt(S.t), 'case length']
+  ];
+  h += '<div><p class="eyebrow">Debrief · VF / pVT arrest · ' + (CFG.mode === 'coach' ? 'pause and explain' : 'real-time') + ' · ' + kit().label.toLowerCase() + '</p><h1>' + esc(S.outcome || 'Case ended') + '</h1></div>';
+  h += '<div class="panel"><div class="scorebox"><div class="num" id="scoreNum">' + r.total + '<small>/100</small></div><p class="muted">' +
+       (r.total >= 85 ? 'Strong run. Check the few points below.' : r.total >= 65 ? 'Good base. A few steps need work.' : 'Go through the points below, then try the case again.') +
+       (r.ded ? ' ' + r.raw + ' points earned, minus ' + r.ded + ' for the errors listed below.' : '') + '</p></div>';
+  h += '<div class="tiles">' + tiles.map(function(t){ return '<div class="tile"><b>' + t[0] + '</b><span>' + t[1] + '</span></div>'; }).join('') + '</div></div>';
+  h += '<div class="panel"><p class="eyebrow">Point by point</p><div>';
+  r.items.forEach(function(i){
+    var cls = i.pts === i.max ? 'full' : i.pts === 0 ? 'zero' : 'part';
+    h += '<div class="item ' + cls + '"><span class="mark">' + (cls === 'full' ? '✓' : cls === 'zero' ? '✗' : '~') + '</span><h3>' + esc(i.title) + '</h3><span class="pts">' + i.pts + ' / ' + i.max + '</span>' +
+         '<p>' + esc(i.did) + '</p><p class="why"><b>Guideline:</b> ' + esc(i.why) + '</p></div>';
+  });
+  h += '</div></div>';
+  if (r.errors.length){
+    h += '<div class="panel"><p class="eyebrow">Errors (3 points each, up to 15)</p><div>';
+    r.errors.forEach(function(e){ h += '<div class="item zero"><span class="mark">✗</span><h3>' + esc(e.text) + '</h3><span class="pts">' + fmt(e.t) + '</span><p class="why"><b>Guideline:</b> ' + esc(e.why) + '</p></div>'; });
+    h += '</div></div>';
+  }
+  h += '<div class="panel"><p class="eyebrow">Event log</p><div class="logrows">' + S.log.map(function(l){ return '<div><time>' + fmt(l.t) + '</time><span class="' + l.cls + '">' + esc(l.text) + '</span></div>'; }).join('') + '</div></div>';
+  h += '<div class="panel"><p class="eyebrow">Sources</p><ul class="srcs"><li>' + SRC9 + '</li><li>Meaney PA, et al. CPR Quality: Improving Cardiac Resuscitation Outcomes. Circulation 2013;128:417–435 (the 80% compression fraction goal).</li></ul></div>';
+  h += '<button type="button" class="btn primary wide" id="againBtn">Run this case again</button><button type="button" class="btn wide" id="setupBtn">Change settings</button>';
+  $('#debriefBody').innerHTML = h;
+  show('debrief'); $('#debrief').scrollTop = 0;
+  $('#againBtn').addEventListener('click', function(){ startCase(); });
+  $('#setupBtn').addEventListener('click', function(){ S = null; show('setup'); });
+}
+
+/* ---------------- main loop ---------------- */
+var lastFrame = performance.now(), manual = false;
+function frame(now){
+  var dt = Math.min(0.5, (now - lastFrame) / 1000); lastFrame = now;
+  if (S && S.phase !== 'ended' && !$('#simScreen').hidden){
+    if (!manual && S.running && S.phase === 'arrest') advance(dt * (CFG.mode === 'coach' ? 6 : S.speed));
+    if (S && S.phase !== 'ended'){ drawECG(dt); render(); }
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* hooks used by the automated tests */
+window.ACLS = {
+  get S(){ return S; }, CFG:CFG, A:A, start:startCase, begin:begin, cont:cont, score:computeScore, nextStep:function(){ return nextStep(); },
+  setManual:function(v){ manual = v; },
+  run:function(sec){ advance(sec); render(); }
+};
+})();
+</script>
+</body>
+</html>
